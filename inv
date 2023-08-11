@@ -1,0 +1,3766 @@
+// Decompiled with JetBrains decompiler
+// Type: Hex.Inventory.FormMain
+// Assembly: Hex.Inventory, Version=1.0.4798.42555, Culture=neutral, PublicKeyToken=null
+// MVID: 3086AA3D-9344-468A-985E-A3BE19581B2B
+// Assembly location: E:\crack\casio\CPT9700\HexPlatform\Hex.Inventory.dll
+
+using Hex.Common;
+using Hex.Common.Controls;
+using Hex.Common.Controls.Filter;
+using Hex.Common.Rfid;
+using Hex.Inventory.Controls;
+using Hex.Inventory.Properties;
+using Resco.Controls.AdvancedList;
+using Resco.Controls.CommonControls;
+using Resco.Controls.OutlookControls;
+using Resco.Controls.ScrollBar;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Data.Common;
+using System.Drawing;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Threading;
+using System.Windows.Forms;
+
+namespace Hex.Inventory
+{
+  public class FormMain : HexBaseForm
+  {
+    private const string PIN = "Pin";
+    private const string HELP = "Help";
+    private const string LOCK = "Lock";
+    private const string PRINT = "Print";
+    private const string CARD = "Card";
+    private const string SEARCH = "Search";
+    private const string WRITETAG = "WriteTag";
+    private const string SEP9 = "Sep9";
+    private const string SEP19 = "Sep19";
+    private const string prefShowFilters = "Inventory.ShowFilters";
+    private const string prefShowExtendedComplectHeader = "Inventory.ShowExtendedComplectHeader";
+    private const string prefFixToolbar = "FixToolbar";
+    private const int hideScrollBarDelay = 2500;
+    private const int IndentifierTextField = 1;
+    private const string strNotInvended = "Не инв.";
+    private const string strBarcord = "Штрих-код";
+    private const string strInvNumber = "Инв. №";
+    private const string strSerNumber = "Сер. №";
+    private const string queryGetIDs = "SELECT di.unique_item_id, di.action_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN _FLT_BP AS FBP ON DI.bp_id = FBP.bp_id JOIN _FLT_LOCATION AS FL ON DI.location_id = FL.location_id WHERE doc_id = {0} AND di.type <> 2";
+    private const string queryGetIDsAllDocs = "SELECT di.unique_item_id, di.action_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN _FLT_BP AS FBP ON DI.bp_id = FBP.bp_id JOIN _FLT_LOCATION AS FL ON DI.location_id = FL.location_id WHERE doc_id in (SELECT d.doc_id FROM DOC as d WHERE d.doc_id_parent = {0} AND d.type_id in (1,3)) AND di.type <> 2";
+    private const string queryGetComplectIDs = "SELECT di.unique_item_id, di.unique_item_parent_id, di.action_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN _FLT_BP AS FBP ON DI.bp_id = FBP.bp_id JOIN _FLT_LOCATION AS FL ON DI.location_id = FL.location_id WHERE di.doc_id = {0} AND di.type = 5";
+    private const string queryGetComplectIDsAllDocs = "SELECT di.unique_item_id, di.unique_item_parent_id, di.action_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN _FLT_BP AS FBP ON DI.bp_id = FBP.bp_id JOIN _FLT_LOCATION AS FL ON DI.location_id = FL.location_id WHERE doc_id in (SELECT d.doc_id FROM DOC as d WHERE d.doc_id_parent = {0}) AND di.type = 5 AND di.action_id > 0";
+    private const string queryGetMainData = "SELECT di.unique_item_id, di.type, di.action_id, i.name, ui.barcode, ui.inventory_number, ui.serial_number, case when di.from_location_id = di.location_id then 0 else 1 end as IsMoved, doc_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN UNIQUE_ITEM AS ui ON di.unique_item_id = ui.unique_item_id JOIN ITEM AS i ON ui.item_id = i.item_id WHERE doc_id = {0} AND di.unique_item_id IN ({1})";
+    private const string queryGetMainDataAllDocs = "SELECT di.unique_item_id, di.type, di.action_id, i.name, ui.barcode, ui.inventory_number, ui.serial_number, case when di.from_location_id = di.location_id then 0 else 1 end as IsMoved, di.doc_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN UNIQUE_ITEM AS ui ON di.unique_item_id = ui.unique_item_id JOIN ITEM AS i ON ui.item_id = i.item_id WHERE doc_id in (SELECT d.doc_id FROM DOC as d WHERE d.doc_id_parent = {0} AND d.type_id in (1,3)) AND di.unique_item_id IN ({1})";
+    private const string queryGetComplectMainData = "SELECT di.unique_item_id, di.type, di.action_id, i.name, ui.barcode, ui.inventory_number, ui.serial_number, case when di.from_location_id = di.location_id then 0 else 1 end as IsMoved, doc_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN UNIQUE_ITEM AS ui ON di.unique_item_id = ui.unique_item_id JOIN ITEM AS i ON ui.item_id = i.item_id WHERE di.doc_id = {0} AND di.unique_item_id in ({1})";
+    private const string queryGetComplectMainDataAllDocs = "SELECT di.unique_item_id, di.type, di.action_id, i.name, ui.barcode, ui.inventory_number, ui.serial_number, case when di.from_location_id = di.location_id then 0 else 1 end as IsMoved, doc_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN UNIQUE_ITEM AS ui ON di.unique_item_id = ui.unique_item_id JOIN ITEM AS i ON ui.item_id = i.item_id WHERE doc_id in (SELECT d.doc_id FROM DOC as d WHERE d.doc_id_parent = {0}) AND di.unique_item_id in ({1})";
+    private const string queryGetLocAndBP = "SELECT l.name as loc_name, bp.name as bp_name, di.inventory_date FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN BP on bp.bp_id = di.bp_id JOIN LOCATION as l on l.location_id = di.location_id WHERE di.doc_id = {0} AND di.unique_item_id = {1}";
+    private const string queryIsDocFullyInvented = "SELECT COUNT(*) = 0 FROM DOC_DETAIL_UNIQUE_ITEM WHERE doc_id = {0} AND action_id in ({1})";
+    private const int BUFFER_ROWS = 15;
+    private SearchPanel searchPanel;
+    private ScannerTypes scannerType;
+    private readonly bool IsCollationMode;
+    private readonly bool m_complect_mode;
+    private bool m_toolbar_fixed;
+    private bool m_text_box_focused;
+    private readonly List<string> m_toolBarItemNames;
+    private Bitmap m_save_lock_pict_upVGA;
+    private Bitmap m_save_lock_pict_up_qVGA;
+    private Bitmap m_save_lock_pict_dwnVGA;
+    private Bitmap m_save_lock_pict_dwn_qVGA;
+    private bool m_search_mode;
+    private PrnTemplateParamsParser m_parserFA;
+    internal HexDocInventory m_doc;
+    private List<FormMain.IdName> m_list_filters;
+    private List<long> m_list_checked;
+    private List<long> additionalFilterChecked;
+    private IDataReader m_reader;
+    private bool bShowFilters;
+    private bool bShowExtendedComplectHeader;
+    private bool bFixToolbar;
+    private HexRfidTagsManager rfidManager;
+    private List<string> notAppliedTags = new List<string>();
+    private volatile FormTagsList formTagsList;
+    private bool skipSetToolbarItemSave;
+    private bool m_found_search_el;
+    private int m_found_row_index = -1;
+    private int m_cur_roww = -1;
+    private long m_current_id;
+    private long m_cur_filter_id;
+    private int prevFoundedByNameUIID;
+    private bool header_click;
+    private bool skipListLocationChangedEvent;
+    private IContainer components;
+    private ToolbarControl m_toolbar;
+    private ImageButton m_downBtn;
+    private Resco.Controls.ScrollBar.VScrollBar vScrollBarInventory;
+    private ScrollBarThumb m_scrollBarThumb;
+    private ScrollBarThumb m_scrollBarThumbHighlight;
+    private ScrollBarTrack m_scrollBarTrack;
+    private ScrollBarButton m_scrollBarButtonUp;
+    private ScrollBarButton m_scrollBarButtonUpHighLight;
+    private ScrollBarButton m_scrollBarButtonDown;
+    private ScrollBarButton m_scrollBarButtonDownHighlight;
+    private System.Windows.Forms.Timer m_timerShowScroll;
+    private Resco.Controls.AdvancedList.AdvancedList listInventory;
+    private CollationLabelPanel collationLabelPanel;
+    private ActionsPanel actionsPanel;
+    private FooterFilterPanel footerFilterPanel;
+    private HeaderFilterPanel headerFilterPanel;
+    private TextCell textCell1;
+    private TextCell textCell2;
+    private TextCell textCell3;
+    private FilterList listLocations;
+    private Resco.Controls.ScrollBar.VScrollBar vScrollBarLocations;
+    private ImageList ImageListChecked;
+    private ImageList ImageListCheckedWhite;
+    private ImageList ImageListCheckedGrey;
+    private ImageList ImageListCheckedBlue;
+    private ImageList ilBackground;
+    private RowTemplate rowTemplateDefault;
+    private TextCell textCell4;
+    private ImageCell imageCell1;
+    private RowTemplate rowTemplateGrey;
+    private TextCell textCell5;
+    private ImageCell imageCell2;
+    private RowTemplate rowTemplateSelected;
+    private ImageCell imageCell3;
+    private TextCell textCell6;
+    private ImageCell imageCell4;
+    private ScannerScoreboard scannerScoreboard;
+    private bool skipScrollEvent;
+    private bool selectionByClick;
+    private float C0;
+    private float C1;
+    private int selectedIdIndex = -1;
+    private readonly System.Threading.Timer scrollTimer;
+    private readonly FormMain.HideScrollBarDelegate HideScrollBarHandler;
+    private FormMain.TemplateFields CurIdentifier = FormMain.TemplateFields.Barcode;
+    private List<int> IDs;
+    private int lastIdIndex;
+    private int prev_no_action;
+    private List<FormMain.ItemStruct> ItemsList;
+    private List<FormMain.ComplectItemStruct> ComplectItemsList;
+    private readonly System.Threading.Timer timerHideLocationList;
+    private readonly FormMain.HideLocationListDelegate HideLocationListHandler;
+    private DialogResult m_defaultChoose_Surplus;
+    private bool m_useDefault_Surplus;
+    //private long \u003CComplectID\u003Ek__BackingField;
+    private long \u003CExpandedComplectId\u003Ek__BackingField;
+
+    internal FormMain(bool CollationMode)
+    {
+      this.InitializeComponent();
+      this.bShowFilters = HexDBProc.DB.GetPref("Inventory.ShowFilters").AsBoolean();
+      this.bShowExtendedComplectHeader = HexDBProc.DB.GetPref("Inventory.ShowExtendedComplectHeader").AsBoolean();
+      this.bFixToolbar = HexDBProc.DB.GetPref("FixToolbar").AsBoolean();
+      this.IsCollationMode = CollationMode;
+      this.footerFilterPanel.IsCollationView = this.IsCollationMode;
+      this.MaximizeBox = false;
+      this.m_toolTipInfo.Click += new EventHandler(this.ToolTipInfo_Click);
+      this.m_toolTipInfo.KeyPress += new KeyPressEventHandler(this.ToolTipInfo_KeyPress);
+      this.m_toolBarItemNames = new List<string>();
+      if ((double) this.GetScaleKoeffWidth == 2.0)
+        this.m_toolbar.Height = 64;
+      if (HexDevice.IsVGA)
+        this.m_toolbar.BackgroundImage = Resources._160x64_background;
+      this.m_search_mode = false;
+      this.m_parserFA = new PrnTemplateParamsParser();
+      this.m_list_checked = new List<long>();
+      this.additionalFilterChecked = new List<long>();
+      this.SetLoButtonsLocation(false);
+      this.LoadXmlTemplate(HexDevice.IsVGA ? "DocInventoryListVGA.xml" : "DocInventoryList.xml");
+      this.listInventory.BorderStyle = BorderStyle.None;
+      this.listInventory.KeyNavigation = false;
+      this.listInventory.SelectionMode = Resco.Controls.AdvancedList.SelectionMode.SelectOnly;
+      this.listInventory.ShowHeader = false;
+      this.listInventory.ShowScrollbar = false;
+      this.listInventory.TabIndex = 1;
+      this.listInventory.ToolTipType = ToolTipType.Dots;
+      this.listInventory.TouchScrolling = true;
+      this.listInventory.Top = this.actionsPanel.Bottom;
+      this.listInventory.DoubleClick += new EventHandler(this.AdvList_DoubleClick);
+      this.listInventory.MouseDown += new MouseEventHandler(this.AdvListProps_MouseDown);
+      this.listInventory.DataLoaded += new DataLoadedEventHandler(this.AdvList_DataLoaded);
+      if (this.IsCollationMode)
+      {
+        this.Text = "Результат инв.";
+        this.collationLabelPanel.BringToFront();
+        this.collationLabelPanel.Show();
+        this.actionsPanel.Top = this.collationLabelPanel.Bottom;
+        this.listLocations.Top = this.actionsPanel.Bottom - 1;
+        this.headerFilterPanel.Top = this.actionsPanel.Bottom;
+        this.headerFilterPanel.BringToFront();
+        this.headerFilterPanel.Show();
+        this.listInventory.Top = this.headerFilterPanel.Bottom;
+        this.listInventory.Height = this.footerFilterPanel.Top - this.listInventory.Top;
+      }
+      this.HideLocationListHandler = new FormMain.HideLocationListDelegate(this.HideLocationList);
+      this.timerHideLocationList = new System.Threading.Timer(new TimerCallback(this.ThreadHideLocationListTimer), (object) null, -1, -1);
+      this.HideScrollBarHandler = new FormMain.HideScrollBarDelegate(this.HideScrollBar);
+      this.scrollTimer = new System.Threading.Timer(new TimerCallback(this.OnTimerScrollBar), (object) null, -1, -1);
+      this.rfidManager = new HexRfidTagsManager();
+      this.rfidManager.SetDelayTime(500);
+    }
+/*
+    private long ComplectID
+    {
+      get => this.\u003CComplectID\u003Ek__BackingField;
+      set => this.\u003CComplectID\u003Ek__BackingField = value;
+    }
+*/
+      private long complectID;
+
+        private long ComplectID
+        {
+            get { return complectID; }
+            set { complectID = value; }
+        }
+
+
+    private void FormMain_Load(object sender, EventArgs e)
+    {
+      if (this.m_doc.Status == HexDoc.DocState.Closed)
+      {
+        this.actionsPanel.ManualInvBtnEnabled = false;
+        this.actionsPanel.ManualMissingBtnEnabled = false;
+        this.actionsPanel.CancelActionBtnEnabled = false;
+        this.actionsPanel.ShowActionButtons = false;
+      }
+      else
+      {
+        this.m_doc.TransactionBegin();
+        this.m_doc.UpdateDocFilterList();
+        if (this.m_doc.DateStarted == DateTime.MinValue)
+          this.m_doc.Start();
+      }
+      if (this.m_doc.InventMode == HexDocInventory.InventoryMode.ModeBP)
+      {
+        this.headerFilterPanel.ButtonBpEnabled = false;
+        this.actionsPanel.IsFilterByLoc = false;
+      }
+      else
+      {
+        this.headerFilterPanel.ButtonLocEnabled = false;
+        this.actionsPanel.IsFilterByLoc = true;
+      }
+      if (this.m_doc.FilterIDsEnabled != null && this.m_doc.FilterIDsEnabled.Count == 1)
+        this.m_doc.FilterIDDetailed = (long) this.m_doc.FilterIDsEnabled[0];
+      this.m_list_filters = new List<FormMain.IdName>();
+      this.PrepareDBFilters();
+      this.FillListLocations();
+      this.FillToolBar();
+      if (this.m_doc.IsModified)
+        this.SetPictureSave();
+      else
+        this.SetPictureLock();
+      if (this.bFixToolbar)
+      {
+        this.ShowToolBar(true);
+        this.FixToolBar(true);
+        this.m_toolbar_fixed = true;
+      }
+      this.m_doc.Modified += new HexDoc.EmptyHandler(this.SetPictureSave);
+      this.m_doc.Saved += new HexDoc.EmptyHandler(this.SetPictureLock);
+      this.footerFilterPanel.ShowNoAction = this.footerFilterPanel.ShowSurplus = this.footerFilterPanel.ShowMissing = this.footerFilterPanel.ShowInvented = true;
+      if (this.IsCollationMode)
+      {
+        this.collationLabelPanel.CollaionDateStart = this.m_doc.DateStarted;
+        this.collationLabelPanel.CollaionDateFinished = this.m_doc.DateFinished;
+      }
+      this.ExpandHeaderFilters(this.bShowFilters);
+      this.BeginUpdateMainList(true);
+      this.SelectFirstRow();
+      this.OnSettingsChanged();
+      this.EnableScaner();
+      HexWaitCursor.Hide();
+    }
+
+    private void EnableScaner()
+    {
+      try
+      {
+        switch (this.scannerType)
+        {
+          case ScannerTypes.LaserScanner:
+            HexDevice.Scanner.Enable(this.ToString());
+            HexDevice.Scanner.OnRead += new EventHandler<ScannerEventArgs>(this.OnRead_Scanner);
+            break;
+          case ScannerTypes.RFID:
+            HexDevice.RfId.Enable(this.ToString());
+            HexDevice.RfId.ButtonPressed += new RFIDButtonPressed(this.RfId_ButtonPressed);
+            break;
+        }
+      }
+      catch (Exception ex)
+      {
+        this.ToolTipShow("Сканер не включен: " + ex.Message);
+      }
+    }
+
+    private void DisableScaner()
+    {
+      try
+      {
+        switch (this.scannerType)
+        {
+          case ScannerTypes.LaserScanner:
+            HexDevice.Scanner.OnRead -= new EventHandler<ScannerEventArgs>(this.OnRead_Scanner);
+            HexDevice.Scanner.Disable();
+            break;
+          case ScannerTypes.RFID:
+            HexDevice.RfId.Disable();
+            this.Rfid_UnSubscribe();
+            HexDevice.RfId.ButtonPressed -= new RFIDButtonPressed(this.RfId_ButtonPressed);
+            break;
+        }
+      }
+      catch (Exception ex)
+      {
+        this.ToolTipShow("Сканер не выключен: " + ex.Message);
+      }
+    }
+
+    private void RfId_ButtonPressed(bool pressed)
+    {
+      if (!pressed)
+        return;
+      bool flag = false;
+      switch (HexDevice.RfId.DeviceAction)
+      {
+        case RFIDActions.None:
+          flag = true;
+          break;
+      }
+      if (flag)
+      {
+        this.Rfid_Subscribe();
+      }
+      else
+      {
+        this.ToolTipHide();
+        this.Rfid_UnSubscribe();
+        if (this.notAppliedTags.Count > 0)
+        {
+          this.DisableScaner();
+          HexWaitCursor.Show();
+          if (this.formTagsList == null)
+            this.formTagsList = new FormTagsList();
+          this.formTagsList.SetTagsList(this.notAppliedTags, this.m_doc.ChildDocId, this.actionsPanel.LocationText);
+          if (this.formTagsList.ShowDialog() == DialogResult.OK)
+          {
+            this.DoInventoryList(this.formTagsList.GetSelectedTags());
+            this.formTagsList.RemoveSelectedTags();
+          }
+          HexWaitCursor.Hide();
+          this.EnableScaner();
+        }
+        this.listInventory.Focus();
+      }
+    }
+
+    private void Rfid_Subscribe()
+    {
+      HexDevice.RfId.ClearLabelList();
+      HexDevice.RfId.NewTagFound += new RFIDNewTagFoundHander(this.RfId_NewTagFound);
+      this.rfidManager.NewTagFound += new NewTagHandler(this.rfidManager_NewTagFound);
+      this.rfidManager.Begin();
+      HexDevice.RfId.BeginSearch();
+      HexDevice.Signal.BlinkKeyLight(500);
+    }
+
+    private void Rfid_UnSubscribe()
+    {
+      HexDevice.Signal.BlinkKeyLight(-1);
+      HexDevice.RfId.EndSearch();
+      HexDevice.RfId.NewTagFound -= new RFIDNewTagFoundHander(this.RfId_NewTagFound);
+      HexDevice.RfId.ClearLabelList();
+      this.rfidManager.Stop();
+      this.rfidManager.Clear();
+      this.rfidManager.NewTagFound -= new NewTagHandler(this.rfidManager_NewTagFound);
+    }
+
+    private void OnRead_Scanner(object sender, ScannerEventArgs e)
+    {
+      if (this.InvokeRequired)
+        this.Invoke((Delegate) new EventHandler<ScannerEventArgs>(this.OnRead_Scanner), sender, (object) e);
+      else if (this.searchPanel != null && this.searchPanel.Visible)
+      {
+        if (e.IsEmptyBarcode)
+          return;
+        try
+        {
+          this.DisableScaner();
+          this.searchPanel.AppendSearchText(e.Barcodes[0]);
+        }
+        finally
+        {
+          this.EnableScaner();
+        }
+      }
+      else
+      {
+        if (this.m_doc.Status == HexDoc.DocState.Closed || e.IsEmptyBarcode)
+          return;
+        HexWaitCursor.Show();
+        try
+        {
+          this.ToolTipHide();
+          this.DisableScaner();
+          string Message;
+          int num = (int) this.DoInventory(e.Barcodes[0], FormMain.ScanType.Laser, out Message);
+          this.ToolTipShow(Message);
+        }
+        catch (Exception ex)
+        {
+          this.ToolTipShow(ex.Message);
+          HexWaitCursor.Hide();
+        }
+        finally
+        {
+          HexWaitCursor.Hide();
+          this.EnableScaner();
+        }
+      }
+    }
+
+    private void RfId_NewTagFound(string tag, int power) => this.rfidManager.Add(tag);
+
+    private void rfidManager_NewTagFound(string tag) => this.Invoke((Delegate) new NewTagHandler(this.OnNewTagFound), (object) tag);
+
+    private void OnNewTagFound(string tag)
+    {
+      this.rfidManager.ResetSync();
+      try
+      {
+        HexWaitCursor.Show();
+        if (this.DoInventory(tag, FormMain.ScanType.RFID, out string _) == FormMain.InvActionResult.ActionNotApplied && this.notAppliedTags.IndexOf(tag) < 0)
+          this.notAppliedTags.Add(tag);
+        ++this.scannerScoreboard.Count;
+        HexDevice.Signal.PlaySuccess();
+      }
+      catch (Exception ex)
+      {
+        HexDevice.Signal.PlayError();
+        this.ToolTipShow(ex.Message);
+      }
+      HexWaitCursor.HideSync();
+      this.listInventory.Focus();
+      Application.DoEvents();
+      this.rfidManager.SetSync();
+    }
+
+    private void BeginUpdateMainList(bool LoadData)
+    {
+      if (this.m_doc == null)
+        return;
+      if (this.IDs != null)
+        this.IDs.Clear();
+      if (!this.m_complect_mode)
+        this.listInventory.ShowHeader = false;
+      this.selectionByClick = false;
+      this.IDs = this.LoadIDs((long) this.m_doc.ChildDocId);
+      this.InitScrollbar(this.IDs.Count);
+      if (LoadData)
+        this.LoadDataToList(0, (long) this.m_doc.ChildDocId, 0, true);
+      this.m_found_search_el = false;
+      this.m_found_row_index = -1;
+    }
+
+    private void PrepareDBFilters()
+    {
+      HexDBProc.HexTransaction hexTransaction = new HexDBProc.HexTransaction();
+      hexTransaction.Begin();
+      if (this.m_doc.InventMode == HexDocInventory.InventoryMode.ModeBP)
+      {
+        HexBPLoc.FilterBPDeleteAll();
+        if (this.m_doc.FilterIDsEnabled == null)
+        {
+          foreach (long fullIds in HexBPLoc.GetFullIDsList(ObjType.BusinessPartner))
+            HexBPLoc.FilterBPAdd(fullIds);
+        }
+        else
+        {
+          foreach (long id in this.m_doc.FilterIDsEnabled)
+            HexBPLoc.FilterBPAdd(id);
+        }
+        foreach (HexBPLoc hexBpLoc in HexBPLoc.GetFullBPLocsListByFilter(ObjType.BusinessPartner))
+        {
+          this.m_list_filters.Add(new FormMain.IdName()
+          {
+            ID = hexBpLoc.ID,
+            Name = hexBpLoc.Name
+          });
+          this.m_list_checked.Add(hexBpLoc.ID);
+        }
+        HexBPLoc.FilterLocDeleteAll();
+        foreach (long fullIds in HexBPLoc.GetFullIDsList(ObjType.Location))
+          HexBPLoc.FilterLocAdd(fullIds);
+        foreach (HexObject hexObject in HexBPLoc.GetFullBPLocsListByFilter(ObjType.Location))
+          this.additionalFilterChecked.Add(hexObject.ID);
+      }
+      else
+      {
+        HexBPLoc.FilterLocDeleteAll();
+        if (this.m_doc.FilterIDsEnabled == null)
+        {
+          foreach (long fullIds in HexBPLoc.GetFullIDsList(ObjType.Location))
+            HexBPLoc.FilterLocAdd(fullIds);
+        }
+        else
+        {
+          foreach (long id in this.m_doc.FilterIDsEnabled)
+            HexBPLoc.FilterLocAdd(id);
+        }
+        foreach (HexBPLoc hexBpLoc in HexBPLoc.GetFullBPLocsListByFilter(ObjType.Location))
+        {
+          this.m_list_filters.Add(new FormMain.IdName()
+          {
+            ID = hexBpLoc.ID,
+            Name = hexBpLoc.Name
+          });
+          this.m_list_checked.Add(hexBpLoc.ID);
+        }
+        HexBPLoc.FilterBPDeleteAll();
+        foreach (long fullIds in HexBPLoc.GetFullIDsList(ObjType.BusinessPartner))
+          HexBPLoc.FilterBPAdd(fullIds);
+        foreach (HexObject hexObject in HexBPLoc.GetFullBPLocsListByFilter(ObjType.BusinessPartner))
+          this.additionalFilterChecked.Add(hexObject.ID);
+      }
+      hexTransaction.Commit();
+    }
+
+    private void FillListLocations()
+    {
+      try
+      {
+        this.listLocations.BeginUpdate();
+        this.listLocations.DataRows.Clear();
+        List<int> incompletedDocs = this.m_doc.GetIncompletedDocs();
+        bool flag = false;
+        if (this.IsCollationMode)
+        {
+          this.listLocations.DataRows.Add(new Row(flag ? 1 : 0, 2, (ICollection) new object[3]
+          {
+            (object) "Все",
+            (object) -1,
+            (object) (incompletedDocs.Count > 0 ? 0 : 1)
+          }));
+          flag = !flag;
+        }
+        foreach (KeyValuePair<int, HexDocInventory.ChildDocDet> childDoc in this.m_doc.ChildDocs)
+        {
+          int index1 = -1;
+          for (int index2 = 0; index2 < incompletedDocs.Count; ++index2)
+          {
+            if (incompletedDocs[index2] == childDoc.Key)
+            {
+              index1 = index2;
+              break;
+            }
+          }
+          if (index1 >= 0)
+            incompletedDocs.RemoveAt(index1);
+          Row row = new Row(flag ? 1 : 0, 2, (ICollection) new object[3]
+          {
+            (object) childDoc.Value.Name,
+            (object) childDoc.Key,
+            (object) (index1 != -1 ? 0 : 1)
+          });
+          this.listLocations.DataRows.Add(row);
+          if (childDoc.Key == this.m_doc.ChildDocId && this.m_doc.Status != HexDoc.DocState.Closed)
+          {
+            row.Selected = true;
+            this.actionsPanel.LocationText = childDoc.Value.Name;
+          }
+          flag = !flag;
+        }
+        if (this.listLocations.SelectedRow == null && this.listLocations.DataRows.Count > 0)
+        {
+          this.listLocations.DataRows[0].Selected = true;
+          this.actionsPanel.LocationText = this.listLocations.DataRows[0][0].ToString();
+          this.m_doc.ChildDocId = Convert.ToInt32(this.listLocations.DataRows[0][1]);
+        }
+        if (this.listLocations.SelectedRow == null)
+          return;
+        this.listLocations.EnsureVisible(this.listLocations.SelectedRow, true);
+      }
+      finally
+      {
+        int height = this.listLocations.Templates[0].Height;
+        int num1 = (Screen.PrimaryScreen.Bounds.Height - this.listLocations.Top) / (height + 2);
+        int num2 = this.listLocations.DataRows.Count > num1 ? num1 : this.listLocations.DataRows.Count;
+        if (num2 < 1)
+          num2 = 1;
+        this.listLocations.Height = height * num2;
+        this.listLocations.EndUpdate();
+      }
+    }
+
+    private int FooterSetData(int no_act, int invented, int surplus, int missing)
+    {
+      this.footerFilterPanel.NoAction = no_act;
+      this.footerFilterPanel.Invented = invented;
+      this.footerFilterPanel.Surplus = surplus;
+      this.footerFilterPanel.Missing = missing;
+      return 0;
+    }
+
+    private static long GetUniqItemID(Row row) => row == null || row.FieldCount < 5 ? 0L : Convert.ToInt64(row[1]);
+
+    private static string GetUniqItemBarcode(Row row)
+    {
+      string empty = string.Empty;
+      try
+      {
+        if (row.FieldCount < 2)
+          return empty;
+        empty = row[5].ToString();
+      }
+      catch (Exception ex)
+      {
+        int num = (int) HexMessageBox.Show((Form) null, ex.Message);
+      }
+      return empty;
+    }
+
+    private static int GetStatusImageIndex(InventoryActions Action, bool IsMovedLoc)
+    {
+      int statusImageIndex = 0;
+      switch (Action)
+      {
+        case InventoryActions.NoAction:
+          statusImageIndex = 0;
+          break;
+        case InventoryActions.AutoConfirm:
+          statusImageIndex = 1;
+          break;
+        case InventoryActions.ManualConfirm:
+          statusImageIndex = 2;
+          break;
+        case InventoryActions.Missing:
+        case InventoryActions.MissingAuto:
+          statusImageIndex = 3;
+          break;
+        case InventoryActions.SurplusNoAction:
+          statusImageIndex = 4;
+          break;
+        case InventoryActions.SurplusAuto:
+          statusImageIndex = 5;
+          break;
+        case InventoryActions.SurplusManually:
+          statusImageIndex = 5;
+          break;
+        case InventoryActions.SurplusMissing:
+        case InventoryActions.SurplusMissingAuto:
+          statusImageIndex = 3;
+          break;
+      }
+      return statusImageIndex;
+    }
+
+    private void ShowCard(long uiId) => this.ShowCard((HexMarkedObject) (HexUniqueItem.GetUniqueItem(uiId) ?? throw new Exception("Не удалось загрузить информацию об ОС")));
+
+    private void ShowCard(string identifier) => this.ShowCard((HexMarkedObject) (HexUniqueItem.GetUniqueItemByBarcode(identifier) ?? throw new Exception("ОС со штрих-кодом " + identifier + " не найдено")));
+
+    private void ShowCard(HexMarkedObject ui)
+    {
+      try
+      {
+        HexWaitCursor.Show();
+        this.DisableScaner();
+        using (FormCard formCard = new FormCard(ui))
+        {
+          int num = (int) formCard.ShowDialog();
+          if (formCard.HasVisibleChanges)
+          {
+            if (this.listInventory.SelectedRow != null)
+              this.FindAndSelectItem((long) Convert.ToInt32(this.listInventory.SelectedRow[1]));
+          }
+        }
+      }
+      catch (Exception ex)
+      {
+        HexWaitCursor.Hide();
+        throw new Exception("Ошибка: " + ex.Message);
+      }
+      finally
+      {
+        this.EnableScaner();
+      }
+      HexWaitCursor.Hide();
+    }
+
+    private void LoadXmlTemplate(string filename)
+    {
+      string str1 = "\\RescoTemplates\\";
+      string str2 = Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetModules()[0].FullyQualifiedName) + str1 + filename;
+      if (!File.Exists(str2))
+        throw new Exception("He найден файл шаблона " + filename);
+      try
+      {
+        this.listInventory.LoadXml(str2);
+      }
+      catch (Exception ex)
+      {
+        throw new Exception("Ошибка загрузки файла " + Resources.StrTemplateFAsFileName + "\r\nOriginal message: " + ex.Message);
+      }
+    }
+
+    private void ReaderClose()
+    {
+      if (this.m_reader == null)
+        return;
+      this.m_reader.Close();
+      this.m_reader.Dispose();
+      this.m_reader = (IDataReader) null;
+    }
+
+    private void SetLoButtonsLocation(bool upper) => this.footerFilterPanel.Top = Screen.PrimaryScreen.Bounds.Height - (upper ? this.m_toolbar.Height : this.m_downBtn.Height) - this.footerFilterPanel.Height;
+
+    private void FillToolBarDictionary()
+    {
+      this.m_toolBarItemNames.Clear();
+      if (this.m_doc.Status == HexDoc.DocState.Closed)
+      {
+        this.m_toolBarItemNames.Add("Pin");
+        this.m_toolBarItemNames.Add("Sep19");
+        this.m_toolBarItemNames.Add("Print");
+        this.m_toolBarItemNames.Add("Sep19");
+        this.m_toolBarItemNames.Add("Card");
+        this.m_toolBarItemNames.Add("Sep19");
+        this.m_toolBarItemNames.Add("WriteTag");
+        this.m_toolBarItemNames.Add("Sep19");
+        this.m_toolBarItemNames.Add("Search");
+      }
+      else
+      {
+        this.m_toolBarItemNames.Add("Pin");
+        this.m_toolBarItemNames.Add("Sep9");
+        this.m_toolBarItemNames.Add("Lock");
+        this.m_toolBarItemNames.Add("Sep9");
+        this.m_toolBarItemNames.Add("Print");
+        this.m_toolBarItemNames.Add("Sep9");
+        this.m_toolBarItemNames.Add("Card");
+        this.m_toolBarItemNames.Add("Sep9");
+        this.m_toolBarItemNames.Add("WriteTag");
+        this.m_toolBarItemNames.Add("Sep9");
+        this.m_toolBarItemNames.Add("Search");
+      }
+    }
+
+    private void FillToolBar()
+    {
+      this.FillToolBarDictionary();
+      this.m_toolbar.Items.Clear();
+      foreach (string toolBarItemName in this.m_toolBarItemNames)
+      {
+        ToolbarItem anItem = new ToolbarItem()
+        {
+          Name = toolBarItemName
+        };
+        string key;
+        if ((key = toolBarItemName) != null)
+        {
+          if (\u003CPrivateImplementationDetails\u003E\u007B3086AA3D\u002D9344\u002D468A\u002D985E\u002DA3BE19581B2B\u007D.\u0024\u0024method0x600001c\u002D1 == null)
+            \u003CPrivateImplementationDetails\u003E\u007B3086AA3D\u002D9344\u002D468A\u002D985E\u002DA3BE19581B2B\u007D.\u0024\u0024method0x600001c\u002D1 = new Dictionary<string, int>(9)
+            {
+              {
+                "Pin",
+                0
+              },
+              {
+                "Help",
+                1
+              },
+              {
+                "Print",
+                2
+              },
+              {
+                "Card",
+                3
+              },
+              {
+                "Search",
+                4
+              },
+              {
+                "WriteTag",
+                5
+              },
+              {
+                "Lock",
+                6
+              },
+              {
+                "Sep9",
+                7
+              },
+              {
+                "Sep19",
+                8
+              }
+            };
+          int num;
+          // ISSUE: explicit non-virtual call
+          if (__nonvirtual (\u003CPrivateImplementationDetails\u003E\u007B3086AA3D\u002D9344\u002D468A\u002D985E\u002DA3BE19581B2B\u007D.\u0024\u0024method0x600001c\u002D1.TryGetValue(key, out num)))
+          {
+            switch (num)
+            {
+              case 0:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByImageWithoutScaling;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.UnselectAfterClick;
+                anItem.ImageDefault = HexDevice.IsVGA ? Resources.pin_up : Resources.pin_up32;
+                anItem.ImagePressed = HexDevice.IsVGA ? Resources.pin_down : Resources.pin_down32;
+                anItem.ImageDefaultVGA = Resources.pin_up;
+                anItem.ImagePressedVGA = Resources.pin_down;
+                break;
+              case 1:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByImageWithoutScaling;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.UnselectAfterClick;
+                anItem.ImageDefault = HexDevice.IsVGA ? Resources.help_up : Resources.help_up32;
+                anItem.ImagePressed = HexDevice.IsVGA ? Resources.help_dwn : Resources.help_dwn32;
+                anItem.ImageDefaultVGA = Resources.help_up;
+                anItem.ImagePressedVGA = Resources.help_dwn;
+                break;
+              case 2:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByImageWithoutScaling;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.UnselectAfterClick;
+                anItem.ImageDefault = Resources.toolbar_print_32;
+                anItem.ImagePressed = Resources.toolbar_print_down_32;
+                anItem.ImageDisabled = Resources.toolbar_print_off_32;
+                anItem.ImageDefaultVGA = Resources.toolbar_print_64;
+                anItem.ImagePressedVGA = Resources.toolbar_print_down_64;
+                anItem.ImageDisabledVGA = Resources.toolbar_print_off_64;
+                break;
+              case 3:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByImageWithoutScaling;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.UnselectAfterClick;
+                anItem.ImageDefault = Resources.card_up32;
+                anItem.ImagePressed = Resources.card_dwn32;
+                anItem.ImageDisabled = Resources.card_up32;
+                anItem.ImageDefaultVGA = Resources.card_up;
+                anItem.ImagePressedVGA = Resources.card_dwn;
+                anItem.ImageDisabledVGA = Resources.card_up;
+                break;
+              case 4:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByImageWithoutScaling;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.UnselectAfterClick;
+                anItem.ImageDefault = HexDevice.IsVGA ? Resources.search_up : Resources.search_up32;
+                anItem.ImagePressed = HexDevice.IsVGA ? Resources.search_dwn : Resources.search_dwn32;
+                anItem.ImageDefaultVGA = Resources.search_up;
+                anItem.ImagePressedVGA = Resources.search_dwn;
+                break;
+              case 5:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByImageWithoutScaling;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.UnselectAfterClick;
+                anItem.ImageDefault = Resources.toolbar_write_tag_32;
+                anItem.ImagePressed = Resources.toolbar_write_tag_32;
+                anItem.ImageDefaultVGA = Resources.toolbar_write_tag_64;
+                anItem.ImagePressedVGA = Resources.toolbar_write_tag_64;
+                break;
+              case 6:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByImageWithoutScaling;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.UnselectAfterClick;
+                anItem.ImageDefault = this.m_save_lock_pict_up_qVGA;
+                anItem.ImagePressed = this.m_save_lock_pict_dwn_qVGA;
+                anItem.ImageDefaultVGA = this.m_save_lock_pict_upVGA;
+                anItem.ImagePressedVGA = this.m_save_lock_pict_dwnVGA;
+                break;
+              case 7:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByCustomSize;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.Separator;
+                anItem.CustomSize = new Size((double) this.GetScaleKoeffWidth == 2.0 ? 40 : 20, 0);
+                break;
+              case 8:
+                anItem.ItemSizeType = ToolbarItemSizeType.ByCustomSize;
+                anItem.ToolbarItemBehavior = ToolbarItemBehaviorType.Separator;
+                anItem.CustomSize = new Size((double) this.GetScaleKoeffWidth == 2.0 ? 70 : 35, 0);
+                break;
+            }
+          }
+        }
+        this.m_toolbar.Items.Add(anItem);
+      }
+    }
+
+    private void ShowToolBar(bool enable)
+    {
+      if (this.m_toolbar_fixed && !enable)
+        return;
+      this.m_toolbar.Enabled = enable;
+      this.m_toolbar.Visible = enable;
+      this.m_downBtn.Enabled = !enable;
+      this.m_downBtn.Visible = !enable;
+      if (enable)
+      {
+        this.m_downBtn.Dock = DockStyle.None;
+        this.m_toolbar.Dock = DockStyle.Bottom;
+        this.m_toolbar.BringToFront();
+      }
+      else
+      {
+        this.m_toolbar.Dock = DockStyle.None;
+        this.m_downBtn.Dock = DockStyle.Bottom;
+        this.m_search_mode = false;
+        this.ShowTextBox(false);
+      }
+    }
+
+    private void FixToolBar(bool fix)
+    {
+      int index = this.m_toolBarItemNames.IndexOf("Pin");
+      this.SetLoButtonsLocation(fix);
+      if (fix)
+      {
+        if ((double) this.GetScaleKoeffWidth == 2.0)
+        {
+          this.m_toolbar.Items[index].ImageDefault = Resources.pin_down;
+          this.m_toolbar.Items[index].ImagePressed = Resources.pin_up;
+        }
+        else
+        {
+          this.m_toolbar.Items[index].ImageDefault = Resources.pin_down32;
+          this.m_toolbar.Items[index].ImagePressed = Resources.pin_up32;
+        }
+        this.m_toolbar.Items[index].ImageDefaultVGA = Resources.pin_down;
+        this.m_toolbar.Items[index].ImagePressedVGA = Resources.pin_up;
+        this.listInventory.Height = this.footerFilterPanel.Top - this.listInventory.Top;
+      }
+      else
+      {
+        if ((double) this.GetScaleKoeffWidth == 2.0)
+        {
+          this.m_toolbar.Items[index].ImageDefault = Resources.pin_up;
+          this.m_toolbar.Items[index].ImagePressed = Resources.pin_down;
+        }
+        else
+        {
+          this.m_toolbar.Items[index].ImageDefault = Resources.pin_up32;
+          this.m_toolbar.Items[index].ImagePressed = Resources.pin_down32;
+        }
+        this.m_toolbar.Items[index].ImageDefaultVGA = Resources.pin_up;
+        this.m_toolbar.Items[index].ImagePressedVGA = Resources.pin_down;
+        this.listInventory.Height = this.footerFilterPanel.Top - this.listInventory.Top;
+      }
+    }
+
+    private void SetPictureSave()
+    {
+      if (this.skipSetToolbarItemSave)
+        return;
+      this.m_save_lock_pict_upVGA = Resources.save_up64;
+      this.m_save_lock_pict_up_qVGA = HexDevice.IsVGA ? Resources.save_up64 : Resources.save_up32;
+      this.m_save_lock_pict_dwnVGA = Resources.save_dwn64;
+      this.m_save_lock_pict_dwn_qVGA = HexDevice.IsVGA ? Resources.save_dwn64 : Resources.save_dwn32;
+      int index = this.m_toolBarItemNames.IndexOf("Lock");
+      if (index < 0)
+        return;
+      this.m_toolbar.Items[index].ImageDefault = this.m_save_lock_pict_up_qVGA;
+      this.m_toolbar.Items[index].ImagePressed = this.m_save_lock_pict_dwn_qVGA;
+      this.m_toolbar.Items[index].ImageDefaultVGA = this.m_save_lock_pict_upVGA;
+      this.m_toolbar.Items[index].ImagePressedVGA = this.m_save_lock_pict_dwnVGA;
+    }
+
+    private void SetPictureLock()
+    {
+      this.m_save_lock_pict_upVGA = Resources.lock_up;
+      this.m_save_lock_pict_up_qVGA = HexDevice.IsVGA ? Resources.lock_up : Resources.lock_up32;
+      this.m_save_lock_pict_dwnVGA = Resources.lock_dwn;
+      this.m_save_lock_pict_dwn_qVGA = HexDevice.IsVGA ? Resources.lock_dwn : Resources.lock_dwn32;
+      int index = this.m_toolBarItemNames.IndexOf("Lock");
+      if (index < 0)
+        return;
+      this.m_toolbar.Items[index].ImageDefault = this.m_save_lock_pict_up_qVGA;
+      this.m_toolbar.Items[index].ImagePressed = this.m_save_lock_pict_dwn_qVGA;
+      this.m_toolbar.Items[index].ImageDefaultVGA = this.m_save_lock_pict_upVGA;
+      this.m_toolbar.Items[index].ImagePressedVGA = this.m_save_lock_pict_dwnVGA;
+    }
+
+    private void SaveDoc()
+    {
+      HexWaitCursor.Show("Сохранение документа...");
+      try
+      {
+        this.m_doc.Save();
+        if (!this.m_doc.TransactionBegin())
+          throw new Exception("Ошибка начала транзакции");
+        this.ToolTipShow("Документ сохранен");
+      }
+      catch (Exception ex)
+      {
+        this.ToolTipShow(ex.Message);
+      }
+      HexWaitCursor.Hide();
+    }
+
+    private void FinishDoc()
+    {
+      this.ToolTipHide();
+      bool flag = true;
+      foreach (Row dataRow in (CollectionBase) this.listLocations.DataRows)
+      {
+        if (Convert.ToInt32(dataRow[2]) == 0)
+        {
+          flag = false;
+          break;
+        }
+      }
+      if (!flag)
+      {
+        if (DialogResult.Yes != HexMessageBox.Show((Form) this, "Документ содержит неинвентаризированные элементы. При закрытии документа эти элементы будут отмечены как отсутствующие. Желаете завершить документ?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2))
+          return;
+      }
+      else if (DialogResult.Yes != HexMessageBox.Show((Form) this, "После завершения документа редактирование невозможно. Завершить документ?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2))
+        return;
+      this.Invalidate();
+      this.Update();
+      if (this.m_doc.HasReplacements())
+      {
+        if (!FormMain.SkipConfirm2CreateOS2())
+        {
+          if (HexMessageBox.Show((Form) this, "Документ содержит объекты учета, найденные в других подразделениях. Создать для таких объектов учета документ ОС-2 внутренее перемещение?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1) != DialogResult.Yes)
+            goto label_17;
+        }
+        try
+        {
+          HexWaitCursor.Show();
+          this.m_doc.CreateReplacementsDoc();
+          HexWaitCursor.Hide();
+        }
+        catch (Exception ex)
+        {
+          this.m_doc.TransactionRollback();
+          this.m_doc.TransactionBegin();
+          HexWaitCursor.Hide();
+          int num = (int) HexMessageBox.Show((Form) this, ex.Message, "Ошибка");
+          return;
+        }
+      }
+label_17:
+      HexWaitCursor.Show();
+      try
+      {
+        this.DisableScaner();
+        this.skipSetToolbarItemSave = true;
+        this.m_doc.Finish();
+        this.Close();
+      }
+      catch (Exception ex)
+      {
+        this.m_doc.TransactionRollback();
+        this.m_doc.TransactionBegin();
+        HexWaitCursor.Hide();
+        this.ToolTipShow(ex.Message);
+      }
+      finally
+      {
+        this.skipSetToolbarItemSave = false;
+      }
+    }
+
+    private static bool SkipConfirm2CreateOS2() => HexDBProc.DB.GetPref("SKIP_CONFIRM_OS2_CREATION").AsInt32() == 1;
+
+    private void PrintUniqueItem(Resco.Controls.AdvancedList.AdvancedList sender)
+    {
+      if (sender.SelectedRow == null)
+        return;
+      HexWaitCursor.Show();
+      this.DisableScaner();
+      try
+      {
+        this.PrintLabel(HexUniqueItem.GetUniqueItem(Convert.ToInt64(sender.SelectedRow[1])));
+      }
+      catch (Exception ex)
+      {
+        HexWaitCursor.Hide();
+        HexLog.Log.Write(ExceptionLevel.Unknown, ex);
+        this.ToolTipShow(ex.Message);
+      }
+      this.EnableScaner();
+      HexWaitCursor.Hide();
+    }
+
+    private void ShowToolBarButtons(bool enable)
+    {
+      int index1 = this.m_toolBarItemNames.IndexOf("Help");
+      if (index1 >= 0 && index1 < this.m_toolbar.Items.Count)
+      {
+        this.m_toolbar.Items[index1].Enabled = enable;
+        this.m_toolbar.Items[index1].ImageDefault = HexDevice.IsVGA ? (enable ? Resources.help_up : Resources.toolb64_up) : (enable ? Resources.help_up32 : Resources.toolb32_up);
+        this.m_toolbar.Items[index1].ImageDefaultVGA = enable ? Resources.help_up : Resources.toolb64_up;
+      }
+      int index2 = this.m_toolBarItemNames.IndexOf("Print");
+      if (index2 >= 0 && index2 < this.m_toolbar.Items.Count)
+      {
+        this.m_toolbar.Items[index2].ImageDefault = enable ? Resources.toolbar_print_32 : Resources.toolbar_print_off_32;
+        this.m_toolbar.Items[index2].ImageDefaultVGA = enable ? Resources.toolbar_print_64 : Resources.toolbar_print_off_64;
+      }
+      int index3 = this.m_toolBarItemNames.IndexOf("Card");
+      if (index3 >= 0 && index3 < this.m_toolbar.Items.Count)
+      {
+        this.m_toolbar.Items[index3].ImageDefault = HexDevice.IsVGA ? (enable ? Resources.card_up : Resources.toolb64_up) : (enable ? Resources.card_up32 : Resources.toolb32_up);
+        this.m_toolbar.Items[index3].ImageDefaultVGA = enable ? Resources.card_up : Resources.toolb64_up;
+      }
+      int index4 = this.m_toolBarItemNames.IndexOf("Lock");
+      if (index4 < 0 || index4 >= this.m_toolbar.Items.Count)
+        return;
+      this.m_toolbar.Items[index4].ImageDefault = enable ? this.m_save_lock_pict_up_qVGA : (HexDevice.IsVGA ? Resources.toolb64_up : Resources.toolb32_up);
+      this.m_toolbar.Items[index4].ImageDefaultVGA = enable ? this.m_save_lock_pict_upVGA : Resources.toolb64_up;
+    }
+
+    private void ShowTextBox(bool enable)
+    {
+      this.ShowToolBarButtons(!enable);
+      if (enable)
+      {
+        this.m_text_box_focused = true;
+      }
+      else
+      {
+        this.m_text_box_focused = false;
+        this.m_toolbar.BringToFront();
+      }
+      this.m_toolbar.Invalidate();
+    }
+
+    private void PrintLabel(HexUniqueItem ui)
+    {
+      try
+      {
+        HexWaitCursor.Show();
+        if (!this.m_parserFA.IsInitialised)
+          PrnTemplateParamsParser.OpenTemplateFile(ref this.m_parserFA, Resources.StrFileTemplateFAString);
+        if (!HexDevice.Bluetooth.IsInitialized)
+        {
+          HexWaitCursor.SetText("Инициализация Bluetooth...");
+          HexDevice.Bluetooth.Init();
+          HexWaitCursor.SetText("Подключение к принтеру...");
+          HexDevice.Bluetooth.SerialConnect();
+        }
+        try
+        {
+          FormMain.Print((ICollection) this.m_parserFA.SubstituteTemplToVar((object) ui));
+          this.ToolTipHide();
+        }
+        catch (BT_Exception ex)
+        {
+          this.ToolTipShow(ex.Message);
+        }
+        catch (Exception ex)
+        {
+          this.ToolTipShow(ex.Message);
+        }
+        HexWaitCursor.Hide();
+      }
+      catch (BT_Exception ex)
+      {
+        HexWaitCursor.Hide();
+        this.ToolTipHide();
+        using (FormSettings formSettings = new FormSettings(FormSettings.TabPage.Common))
+        {
+          HexWaitCursor.Hide();
+          if (formSettings.ShowDialog() == DialogResult.OK)
+            this.OnSettingsChanged();
+        }
+      }
+      catch (IOException ex)
+      {
+        HexWaitCursor.Hide();
+        this.ToolTipHide();
+        using (FormSettings formSettings = new FormSettings(FormSettings.TabPage.Printer))
+        {
+          HexWaitCursor.Hide();
+          if (formSettings.ShowDialog() == DialogResult.OK)
+            this.OnSettingsChanged();
+        }
+      }
+      catch (Exception ex)
+      {
+        HexWaitCursor.Hide();
+        this.ToolTipShow(ex.Message);
+      }
+      HexWaitCursor.Hide();
+    }
+
+    private static void Print(ICollection _ar)
+    {
+      byte[] buf = new byte[_ar.Count];
+      _ar.CopyTo((Array) buf, 0);
+      HexDevice.Bluetooth.SerialSend(buf, (uint) _ar.Count);
+    }
+
+    private bool MarkAsNone(string barcode)
+    {
+      HexDocDetailUniqItem det = (HexDocDetailUniqItem) this.m_doc.DetailGet(barcode);
+      if (det == null)
+        throw new Exception("Деталь документа не ОС");
+      InventoryActions action = Bits.IsBitSet((Enum) det.Action, (Enum) InventoryBits.Surplus) ? InventoryActions.SurplusMissing : InventoryActions.Missing;
+      this.m_doc.DetailSetAction(action, det);
+      bool flag = false;
+      if (det.TypeUI == UniqueItemType.ComplectFixedAsset)
+      {
+        this.UpdateComplectItemActionInIDsList(det.UniqueItemID, action);
+        flag = this.IsComplectInvented(det.ParentID);
+        if (Bits.IsBitSet((Enum) det.Action, (Enum) InventoryBits.Surplus))
+          this.UpdateItemActionInIDsList(det.ParentID, flag ? InventoryActions.SurplusAuto : InventoryActions.NoAction);
+        else
+          this.UpdateItemActionInIDsList(det.ParentID, flag ? InventoryActions.AutoConfirm : InventoryActions.NoAction);
+      }
+      else
+        this.UpdateItemActionInIDsList(det.UniqueItemID, action);
+      this.UpdateListAfterAction();
+      return flag;
+    }
+
+    private void CancelAction(HexDocDetailUniqItem det)
+    {
+      if (HexMessageBox.Show((Form) this, "Отменить действие?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+        return;
+      if (Bits.IsBitSet((Enum) det.Action, (Enum) InventoryBits.Surplus))
+      {
+        if (this.m_doc.SurplusDetailCancelAction(det))
+        {
+          this.RemoveComplectItemFromIDsList(det.UniqueItemID);
+          this.RemoveItemFromIDsList(det.ParentID);
+          this.BeginUpdateMainList(true);
+          this.ToolTipShow("В результате отмены инвентаризации избыточного элемента был удален и комплект, которому он принадлежит");
+        }
+        else
+        {
+          if (det.TypeUI == UniqueItemType.ComplectFixedAsset)
+            this.RemoveComplectItemFromIDsList(det.UniqueItemID);
+          else
+            this.RemoveItemFromIDsList(det.UniqueItemID);
+          this.UpdateListAfterAction();
+        }
+      }
+      else
+      {
+        this.m_doc.DetailCancelAction(det);
+        if (det.TypeUI == UniqueItemType.ComplectFixedAsset)
+        {
+          this.UpdateComplectItemActionInIDsList(det.UniqueItemID, det.Action);
+          this.UpdateItemActionInIDsList(det.ParentID, InventoryActions.NoAction);
+        }
+        else if (det.TypeUI == UniqueItemType.Complect)
+        {
+          this.UpdateItemActionInIDsList(det.UniqueItemID, InventoryActions.NoAction);
+          this.UpdateAllComplectItemsActionInIDsList(det.UniqueItemID, InventoryActions.NoAction);
+        }
+        else
+          this.UpdateItemActionInIDsList(det.UniqueItemID, InventoryActions.NoAction);
+        this.UpdateListAfterAction();
+      }
+    }
+
+    private void AdvList_DoubleClick(object sender, EventArgs e)
+    {
+      this.selectionByClick = false;
+      try
+      {
+        if (this.listInventory.SelectedRow == null)
+          return;
+        ImageForm.Show((int) this.listInventory.SelectedRow[1]);
+      }
+      catch (Exception ex)
+      {
+        this.ToolTipShow(ex.Message);
+      }
+    }
+
+    private void OnDblClick()
+    {
+      try
+      {
+        if (this.header_click && this.m_complect_mode)
+        {
+          this.CollapseComplect();
+        }
+        else
+        {
+          if (this.listInventory.SelectedRow == null || this.listInventory.SelectedRow.FieldCount < 5)
+            return;
+          int int32 = Convert.ToInt32(this.listInventory.SelectedRow[1]);
+          if (!Convert.ToBoolean(this.listInventory.SelectedRow[2]))
+            this.ShowCard((long) int32);
+          else
+            this.ExpandComplect((long) int32);
+        }
+      }
+      catch (Exception ex)
+      {
+        HexLog.Log.Write(ExceptionLevel.Unknown, ex);
+        this.ToolTipShow(ex.Message);
+      }
+    }
+
+    private void AdvListProps_MouseDown(object sender, MouseEventArgs e)
+    {
+      try
+      {
+        if (sender.Equals((object) this.listInventory))
+          this.listInventory.Focus();
+        this.ShowToolBar(false);
+      }
+      catch (Exception ex)
+      {
+        HexLog.Log.Write(ExceptionLevel.Unknown, ex);
+      }
+      this.ToolTipHide();
+    }
+
+    private void AdvList_DataLoaded(object sender, DataLoadedEventArgs e)
+    {
+      if (e.LoadComplete)
+      {
+        this.ReaderClose();
+        if (this.listInventory.ActiveRowIndex < 0)
+        {
+          if (this.m_found_row_index >= 0)
+          {
+            this.listInventory.ActiveRowIndex = this.m_found_row_index;
+            this.m_found_search_el = true;
+          }
+          else if (this.listInventory.DataRows.Count > 0)
+            this.listInventory.ActiveRowIndex = 0;
+        }
+        HexWaitCursor.Hide();
+      }
+      else
+      {
+        if (this.m_current_id <= 0L)
+          return;
+        try
+        {
+          if (this.m_found_search_el)
+            return;
+          if (this.m_found_row_index >= 0)
+          {
+            this.listInventory.EnsureVisible(this.m_found_row_index);
+            this.listInventory.ActiveRowIndex = this.m_found_row_index;
+            this.m_found_search_el = true;
+            HexWaitCursor.Hide();
+          }
+          else
+          {
+            if (this.m_cur_roww < 0 || this.m_cur_roww >= this.listInventory.DataRows.Count)
+              return;
+            this.listInventory.BeginInvoke((Delegate) new FormMain.SetScrollDeleg(this.listInventory.SetScrollPos), (object) this.m_cur_roww, (object) 0, (object) 0);
+          }
+        }
+        catch (Exception ex)
+        {
+          int num = (int) HexMessageBox.Show((Form) null, "Ошибка: " + ex.Message);
+        }
+      }
+    }
+
+    private void ToolTipInfo_Click(object sender, EventArgs e) => this.listInventory.Focus();
+
+    private void ToolTipInfo_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      switch (e.KeyChar)
+      {
+        case '\b':
+        case '\r':
+        case '\u001B':
+          this.listInventory.Focus();
+          break;
+      }
+    }
+
+    private void FormMain_Closing(object sender, CancelEventArgs e)
+    {
+      this.DisableScaner();
+      bool flag = false;
+      if (this.m_doc.Status != HexDoc.DocState.Closed)
+      {
+        if (this.m_doc.IsModified)
+        {
+          switch (HexMessageBox.Show((Form) this, "Сохранить документ?", "Подтверждение", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1))
+          {
+            case DialogResult.Yes:
+              HexWaitCursor.Show("Сохранение документа...");
+              flag = true;
+              this.ReaderClose();
+              try
+              {
+                this.m_doc.Save();
+                break;
+              }
+              catch (Exception ex)
+              {
+                HexLog.Log.Write(ExceptionLevel.Unknown, ex);
+                break;
+              }
+            case DialogResult.No:
+              HexWaitCursor.Show();
+              flag = true;
+              this.ReaderClose();
+              try
+              {
+                this.m_doc.TransactionRollback();
+                break;
+              }
+              catch (Exception ex)
+              {
+                HexWaitCursor.Hide();
+                HexLog.Log.Write(ExceptionLevel.Unknown, ex);
+                break;
+              }
+            default:
+              this.EnableScaner();
+              e.Cancel = true;
+              return;
+          }
+        }
+        else
+        {
+          HexWaitCursor.Show();
+          this.m_doc.Save();
+        }
+      }
+      if (!flag)
+        HexWaitCursor.Show();
+      this.m_doc.TryRollback();
+      this.m_doc.Modified -= new HexDoc.EmptyHandler(this.SetPictureSave);
+      this.m_doc.Saved -= new HexDoc.EmptyHandler(this.SetPictureLock);
+      this.ReaderClose();
+      HexDevice.Bluetooth.DeInit();
+      this.m_timerShowScroll.Enabled = false;
+      this.m_timerShowScroll.Tick -= new EventHandler(this.TimerShowScroll_Tick);
+      if (this.formTagsList != null)
+      {
+        this.formTagsList.Dispose();
+        this.formTagsList = (FormTagsList) null;
+      }
+      if (this.rfidManager != null)
+      {
+        this.rfidManager.Clear();
+        this.rfidManager.ClearAllTagsList();
+      }
+      this.OnDestroySearch();
+      this.scrollTimer.Change(-1, -1);
+      this.scrollTimer.Dispose();
+      this.ClearCachedIDs();
+      HexDBProc.DB.SetPref("Inventory.ShowFilters", (object) (bool) (this.IsCollationMode ? (this.collationLabelPanel.Expanded ? 1 : 0) : (this.actionsPanel.Expanded ? 1 : 0)));
+      HexDBProc.DB.SetPref("Inventory.ShowExtendedComplectHeader", (object) this.bShowExtendedComplectHeader);
+      HexDBProc.DB.SetPref("FixToolbar", (object) this.m_toolbar_fixed);
+    }
+
+    private void FormMain_Paint(object sender, PaintEventArgs e)
+    {
+    }
+
+    private void m_toolbar_ItemEntered(object sender, EventArgs e)
+    {
+      string toolBarItemName;
+      if (this.m_toolbar.SelectedIndex < 0 || this.m_toolbar.SelectedIndex >= this.m_toolBarItemNames.Count || (toolBarItemName = this.m_toolBarItemNames[this.m_toolbar.SelectedIndex]) == null)
+        return;
+      if (\u003CPrivateImplementationDetails\u003E\u007B3086AA3D\u002D9344\u002D468A\u002D985E\u002DA3BE19581B2B\u007D.\u0024\u0024method0x6000033\u002D1 == null)
+        \u003CPrivateImplementationDetails\u003E\u007B3086AA3D\u002D9344\u002D468A\u002D985E\u002DA3BE19581B2B\u007D.\u0024\u0024method0x6000033\u002D1 = new Dictionary<string, int>(7)
+        {
+          {
+            "Pin",
+            0
+          },
+          {
+            "Help",
+            1
+          },
+          {
+            "Lock",
+            2
+          },
+          {
+            "Print",
+            3
+          },
+          {
+            "Card",
+            4
+          },
+          {
+            "Search",
+            5
+          },
+          {
+            "WriteTag",
+            6
+          }
+        };
+      int num1;
+      // ISSUE: explicit non-virtual call
+      if (!__nonvirtual (\u003CPrivateImplementationDetails\u003E\u007B3086AA3D\u002D9344\u002D468A\u002D985E\u002DA3BE19581B2B\u007D.\u0024\u0024method0x6000033\u002D1.TryGetValue(toolBarItemName, out num1)))
+        return;
+      switch (num1)
+      {
+        case 0:
+          this.m_toolbar_fixed = !this.m_toolbar_fixed;
+          this.FixToolBar(this.m_toolbar_fixed);
+          break;
+        case 1:
+          this.ToolTipShow("Отсканируйте штрих-код для автоматической инвентаризации или проставьте инвентаризацию вручную");
+          break;
+        case 2:
+          if (this.m_doc.IsModified)
+          {
+            this.SaveDoc();
+            break;
+          }
+          this.FinishDoc();
+          break;
+        case 3:
+          this.PrintUniqueItem(this.listInventory);
+          break;
+        case 4:
+          Row selectedRow = this.listInventory.SelectedRow;
+          if (selectedRow == null || selectedRow.FieldCount == 0)
+            break;
+          HexWaitCursor.Show();
+          this.ShowCard(Convert.ToInt64(selectedRow[1]));
+          HexWaitCursor.Hide();
+          break;
+        case 5:
+          if (this.searchPanel == null)
+          {
+            try
+            {
+              HexWaitCursor.Show();
+              this.searchPanel = new SearchPanel(SearchIdentifier.Name);
+              this.Controls.Add((Control) this.searchPanel);
+              this.searchPanel.OnSearch += new EventHandler(this.OnSearch);
+              this.searchPanel.BringToFront();
+              this.searchPanel.Top = this.m_toolbar.Top - this.searchPanel.Height;
+              break;
+            }
+            finally
+            {
+              HexWaitCursor.Hide();
+            }
+          }
+          else
+          {
+            this.searchPanel.InverseVisibleState();
+            break;
+          }
+        case 6:
+          string Label;
+          string str;
+          try
+          {
+            if (this.listInventory.SelectedRow == null)
+              break;
+            Label = this.listInventory.SelectedRow[5].ToString();
+            str = this.listInventory.SelectedRow[4].ToString();
+          }
+          catch
+          {
+            break;
+          }
+          HexWaitCursor.Show();
+          this.DisableScaner();
+          string Message = string.Format("Запись обеъкта учета '{0}'", (object) str);
+          using (FormWriteRfidFA formWriteRfidFa = new FormWriteRfidFA(Label, Message))
+          {
+            int num2 = (int) formWriteRfidFa.ShowDialog();
+          }
+          this.EnableScaner();
+          HexWaitCursor.Hide();
+          break;
+      }
+    }
+
+    private void OnSearch(object sender, EventArgs args)
+    {
+      if (this.searchPanel == null)
+        return;
+      HexWaitCursor.Show();
+      this.DisableScaner();
+      try
+      {
+        this.FindUniqItem(this.searchPanel.Params.SearchString.Trim(), this.searchPanel.Params.Type);
+        this.ShowToolBar(false);
+        this.searchPanel.Hide();
+      }
+      catch (Exception ex)
+      {
+        this.ToolTipShow(ex.Message);
+      }
+      this.EnableScaner();
+      HexWaitCursor.Hide();
+      this.listInventory.Focus();
+    }
+
+    private void FindUniqItem(string identifier, SearchIdentifier identify_type)
+    {
+      HexWaitCursor.SetText("Поиск Основного Средства...");
+      try
+      {
+        HexWaitCursor.Show();
+        int Uiid;
+        UniqueItemType Type;
+        int DocId;
+        bool flag;
+        switch (identify_type)
+        {
+          case SearchIdentifier.Barcode:
+            flag = SearchHelper.FindItemByBarcode(identifier, (int) this.m_doc.ID, out Uiid, out Type, out DocId);
+            break;
+          case SearchIdentifier.SerNum:
+            flag = SearchHelper.FindItemBySerialNumber(identifier, (int) this.m_doc.ID, out Uiid, out Type, out DocId);
+            break;
+          case SearchIdentifier.InvNum:
+            flag = SearchHelper.FindItemByInvNumber(identifier, (int) this.m_doc.ID, out Uiid, out Type, out DocId);
+            break;
+          default:
+            flag = SearchHelper.FindItemByName(identifier + "%", this.prevFoundedByNameUIID, (int) this.m_doc.ID, out Uiid, out Type, out DocId);
+            this.prevFoundedByNameUIID = Uiid;
+            break;
+        }
+        if (!flag)
+          throw new Exception("ОС не найдено.");
+        if (DocId != this.m_doc.ChildDocId)
+        {
+          this.m_doc.ChildDocId = DocId;
+          this.skipListLocationChangedEvent = true;
+          foreach (Row dataRow in (CollectionBase) this.listLocations.DataRows)
+          {
+            if (Convert.ToInt32(dataRow[1]) == DocId)
+            {
+              this.ClearCachedIDs();
+              this.actionsPanel.LocationText = dataRow[0].ToString();
+              dataRow.Selected = true;
+              break;
+            }
+          }
+          this.skipListLocationChangedEvent = false;
+        }
+        this.BeginUpdateMainList(false);
+        if (this.FindAndSelectItem((long) Uiid))
+          return;
+        this.LoadTopListItems();
+      }
+      catch (Exception ex)
+      {
+        this.ToolTipShow(ex.Message);
+      }
+      finally
+      {
+        HexWaitCursor.Hide();
+        this.listInventory.Focus();
+      }
+    }
+
+    private void OnCancelSearch()
+    {
+      if (this.searchPanel == null)
+        return;
+      this.searchPanel.Hide();
+    }
+
+    private void OnDestroySearch()
+    {
+      if (this.searchPanel == null)
+        return;
+      this.Controls.Remove((Control) this.searchPanel);
+      this.searchPanel.OnSearch -= new EventHandler(this.OnSearch);
+      this.searchPanel.Dispose();
+      this.searchPanel = (SearchPanel) null;
+    }
+
+    private void DownBtn_Click(object sender, EventArgs e) => this.ShowToolBar(true);
+
+    private void TimerShowScroll_Tick(object sender, EventArgs e)
+    {
+      this.listInventory.ShowScrollbar = false;
+      this.m_timerShowScroll.Enabled = false;
+    }
+
+    private void vScrollBarInventory_ValueChanged(object sender, EventArgs e) => this.OnVScrollbar();
+
+    private void listInventory_Scroll(object sender, EventArgs e) => this.OnInventoryScroll();
+
+    private void listInventory_RowSelect(object sender, Resco.Controls.AdvancedList.RowEventArgs e)
+    {
+      this.selectionByClick = false;
+      this.SetActionButtonsStates(this.listInventory.SelectedRow);
+    }
+
+    private void listInventory_HeaderClick(object sender, CellEventArgs e) => this.header_click = true;
+
+    private void listInventory_Click(object sender, EventArgs e)
+    {
+      this.OnCancelSearch();
+      this.listLocations.Hide();
+      this.selectionByClick = true;
+      this.header_click = false;
+      if (this.listInventory.GetCellAtPoint(new Point(Control.MousePosition.X, Control.MousePosition.Y - this.listInventory.Top)) != null)
+        return;
+      this.listInventory.SelectedRow = (Row) null;
+      this.actionsPanel.ManualInvBtnEnabled = false;
+      this.actionsPanel.ManualMissingBtnEnabled = false;
+      this.actionsPanel.CancelActionBtnEnabled = false;
+    }
+
+    private void listInventory_Resize(object sender, EventArgs e)
+    {
+      this.vScrollBarInventory.Top = this.listInventory.Top;
+      this.vScrollBarInventory.Height = this.listInventory.Height;
+    }
+
+    private void OnLeftKeyDown()
+    {
+      if (!this.m_complect_mode)
+        return;
+      this.CollapseComplect();
+    }
+
+    private void OnRightReyDown()
+    {
+      if (this.listInventory.SelectedRow == null || this.listInventory.SelectedRow.FieldCount < 5)
+        return;
+      if (Convert.ToBoolean(this.listInventory.SelectedRow[2]))
+        this.ExpandComplect(Convert.ToInt64(this.listInventory.SelectedRow[1]));
+      else
+        this.ShowCard(Convert.ToInt64(this.listInventory.SelectedRow[1]));
+    }
+
+    private void listInventory_KeyDown(object sender, KeyEventArgs e)
+    {
+      try
+      {
+        switch (e.KeyCode)
+        {
+          case Keys.Return:
+          case Keys.Right:
+            this.OnRightReyDown();
+            break;
+          case Keys.Left:
+            this.OnLeftKeyDown();
+            break;
+          case Keys.Up:
+            this.OnKeyUp();
+            break;
+          case Keys.Down:
+            this.OnKeyDown();
+            break;
+        }
+      }
+      catch (Exception ex)
+      {
+        HexLog.Log.Write(ExceptionLevel.Unknown, ex);
+        this.ToolTipShow(ex.Message);
+      }
+      this.listInventory.Focus();
+    }
+
+    private void listInventory_ButtonClick(object sender, CellEventArgs e)
+    {
+      if (e.Cell.Name == "btn.Expand")
+        this.OnDblClick();
+      else if (e.Cell.Name == "btn.Back")
+        this.OnLeftKeyDown();
+      this.listInventory.Focus();
+    }
+
+    private void listInventory_ActiveRowChanged(object sender, EventArgs e) => this.SetItemExtraData(this.listInventory.SelectedRow);
+
+    private void listInventory_MouseUp(object sender, MouseEventArgs e) => this.selectionByClick = false;
+
+    private void SetActionButtonsStates(Row row)
+    {
+      if (this.m_doc.Status == HexDoc.DocState.Closed)
+        return;
+      if (row == null)
+      {
+        this.actionsPanel.ManualInvBtnEnabled = false;
+        this.actionsPanel.ManualMissingBtnEnabled = false;
+        this.actionsPanel.CancelActionBtnEnabled = false;
+      }
+      else if (Convert.ToInt32(row[2]) == 1)
+      {
+        this.actionsPanel.ManualInvBtnEnabled = false;
+        this.actionsPanel.ManualMissingBtnEnabled = false;
+        this.actionsPanel.CancelActionBtnEnabled = false;
+      }
+      else
+      {
+        switch ((InventoryActions) Convert.ToInt32(row[10]))
+        {
+          case InventoryActions.NoAction:
+            this.actionsPanel.ManualInvBtnEnabled = true;
+            this.actionsPanel.ManualMissingBtnEnabled = true;
+            this.actionsPanel.CancelActionBtnEnabled = false;
+            break;
+          case InventoryActions.AutoConfirm:
+          case InventoryActions.ManualConfirm:
+            this.actionsPanel.ManualInvBtnEnabled = false;
+            this.actionsPanel.ManualMissingBtnEnabled = false;
+            this.actionsPanel.CancelActionBtnEnabled = true;
+            break;
+          case InventoryActions.Missing:
+          case InventoryActions.SurplusMissing:
+            this.actionsPanel.ManualInvBtnEnabled = false;
+            this.actionsPanel.ManualMissingBtnEnabled = false;
+            this.actionsPanel.CancelActionBtnEnabled = true;
+            break;
+          case InventoryActions.SurplusNoAction:
+            this.actionsPanel.ManualInvBtnEnabled = true;
+            this.actionsPanel.ManualMissingBtnEnabled = true;
+            this.actionsPanel.CancelActionBtnEnabled = false;
+            break;
+          case InventoryActions.SurplusAuto:
+          case InventoryActions.SurplusManually:
+            this.actionsPanel.ManualInvBtnEnabled = false;
+            this.actionsPanel.ManualMissingBtnEnabled = false;
+            this.actionsPanel.CancelActionBtnEnabled = true;
+            break;
+        }
+      }
+    }
+
+    private void actionsPanel_ManualInvClick(object sender, EventArgs e)
+    {
+      if (this.m_doc.Status == HexDoc.DocState.Closed)
+        return;
+      Row selectedRow = this.listInventory.SelectedRow;
+      if (selectedRow == null)
+        return;
+      HexWaitCursor.Show();
+      try
+      {
+        this.DisableScaner();
+        string Message;
+        if (this.DoInventory(FormMain.GetUniqItemBarcode(selectedRow), FormMain.ScanType.Manually, out Message) == FormMain.InvActionResult.SuccessComplectInvented)
+          this.ToolTipShow(Message);
+      }
+      catch (Exception ex)
+      {
+        HexWaitCursor.Hide();
+        this.ToolTipShow(ex.Message);
+      }
+      finally
+      {
+        this.EnableScaner();
+      }
+      HexWaitCursor.Hide();
+      this.listInventory.Focus();
+    }
+
+    private void actionsPanel_ManualMissingClick(object sender, EventArgs e)
+    {
+      HexWaitCursor.Show();
+      try
+      {
+        Row selectedRow = this.listInventory.SelectedRow;
+        if (selectedRow != null)
+        {
+          string Message;
+          if (this.DoMiss(FormMain.GetUniqItemBarcode(selectedRow), out Message) != FormMain.InvActionResult.SuccessItemInvented)
+            this.ToolTipShow(Message);
+        }
+      }
+      catch (Exception ex)
+      {
+        HexWaitCursor.Hide();
+        HexLog.Log.Write(ExceptionLevel.Unknown, ex);
+        this.ToolTipShow(ex.Message);
+      }
+      HexWaitCursor.Hide();
+      this.listInventory.Focus();
+    }
+
+    private void actionsPanel_CancelActionClick(object sender, EventArgs e)
+    {
+      try
+      {
+        if (this.m_doc.Status == HexDoc.DocState.Closed)
+          return;
+        Row selectedRow = this.listInventory.SelectedRow;
+        if (selectedRow == null)
+          return;
+        string Message;
+        switch (this.DoCancelAction(this.m_doc.DetailGet(FormMain.GetUniqItemID(selectedRow)), out Message))
+        {
+          case FormMain.InvActionResult.SuccessComplectDeleted:
+          case FormMain.InvActionResult.SuccessItemDeleted:
+            HexWaitCursor.Show();
+            this.BeginUpdateMainList(true);
+            HexWaitCursor.Hide();
+            this.ToolTipShow(Message);
+            break;
+          case FormMain.InvActionResult.ActionCanceled:
+            break;
+          default:
+            this.UpdateListAfterAction();
+            this.ToolTipShow(Message);
+            break;
+        }
+      }
+      catch (Exception ex)
+      {
+        HexWaitCursor.Hide();
+        HexLog.Log.Write(ExceptionLevel.Unknown, ex);
+        this.ToolTipShow(ex.Message);
+      }
+    }
+
+    private void footerFilterPanel_FilterChanged(object sender, EventArgs e) => this.UpdateListAfterFilter();
+
+    private void ExpandHeaderFilters(bool expand)
+    {
+      this.actionsPanel.Expanded = expand;
+      this.headerFilterPanel.Visible = expand;
+      this.listInventory.Top = this.actionsPanel.Expanded ? this.headerFilterPanel.Bottom : this.actionsPanel.Bottom;
+      this.FixToolBar(this.m_toolbar_fixed);
+    }
+
+    private void actionsPanel_ExpandFiltersBtnClick(object sender, EventArgs e) => this.ExpandHeaderFilters(!this.actionsPanel.Expanded);
+
+    private void headerFilterPanel_HeaderCollapseBtnClick(object sender, EventArgs e)
+    {
+      this.headerFilterPanel.Hide();
+      this.listInventory.Top = this.actionsPanel.Bottom;
+      this.FixToolBar(this.m_toolbar_fixed);
+    }
+
+    private void headerFilterPanel_HeaderLocBtnClick(object sender, EventArgs e)
+    {
+      this.DisableScaner();
+      this.ShowToolBar(false);
+      if (this.ShowFilters(FilterType.Loc))
+      {
+        this.ClearCachedIDs();
+        this.BeginUpdateMainList(true);
+      }
+      this.EnableScaner();
+      this.listInventory.Focus();
+    }
+
+    private void headerFilterPanel_HeaderBPBtnClick(object sender, EventArgs e)
+    {
+      this.DisableScaner();
+      this.ShowToolBar(false);
+      if (this.ShowFilters(FilterType.BP))
+      {
+        this.ClearCachedIDs();
+        this.BeginUpdateMainList(true);
+      }
+      this.EnableScaner();
+      this.listInventory.Focus();
+    }
+
+    private void headerFilterPanel_HeaderLeftBtnClick(object sender, EventArgs e) => this.SelectPrevIdentifier();
+
+    private void headerFilterPanel_HeaderRightBtnClick(object sender, EventArgs e) => this.SelectNextIdentifier();
+
+    private bool ShowFilters(FilterType Type)
+    {
+      bool flag1 = Type != FilterType.BP ? this.m_doc.InventMode != HexDocInventory.InventoryMode.ModeBP : this.m_doc.InventMode == HexDocInventory.InventoryMode.ModeBP;
+      bool flag2 = false;
+      using (FormFilter formFilter = new FormFilter(Type, flag1 ? this.m_doc.FilterIDsEnabled : (List<int>) null))
+      {
+        if (formFilter.ShowDialog() == DialogResult.OK)
+        {
+          flag2 = true;
+          if (FilterType.BP == Type)
+            this.headerFilterPanel.FilterBPUsed = !formFilter.IsAllChecked();
+          else
+            this.headerFilterPanel.FilterLocUsed = !formFilter.IsAllChecked();
+        }
+      }
+      HexWaitCursor.Hide();
+      return flag2;
+    }
+
+    private void FormMain_HelpClick(object sender, EventArgs e) => this.ToolTipShow("Отсканируйте штрих-код для автоматической инвентаризации или проставьте инвентаризацию вручную");
+
+    private void actionsPanel_LocationBtnClick(object sender, EventArgs e)
+    {
+      this.listLocations.Visible = !this.listLocations.Visible;
+      if (this.listLocations.Visible)
+      {
+        this.listLocations.BringToFront();
+        this.listLocations.Focus();
+      }
+      else
+      {
+        this.listLocations.SendToBack();
+        this.listInventory.Focus();
+      }
+    }
+
+    private void listLocations_Click(object sender, EventArgs e)
+    {
+      if (this.listLocations.SelectedRow != null && this.listLocations.SelectedRow.TemplateIndex == 2)
+        return;
+      this.ResetHideLocationListTimer();
+    }
+
+    private void listLocations_LostFocus(object sender, EventArgs e) => this.listLocations.Hide();
+
+    private void listLocations_RowSelect(object sender, Resco.Controls.AdvancedList.RowEventArgs e)
+    {
+      if (this.skipListLocationChangedEvent)
+        return;
+      Row selectedRow = this.listLocations.SelectedRow;
+      if (selectedRow == null)
+        return;
+      Application.DoEvents();
+      try
+      {
+        HexWaitCursor.Show();
+        this.ClearCachedIDs();
+        this.m_doc.ChildDocId = Convert.ToInt32(selectedRow[1]);
+        this.actionsPanel.LocationText = selectedRow[0].ToString();
+        this.BeginUpdateMainList(true);
+        this.SelectFirstRow();
+        if (this.notAppliedTags == null)
+          return;
+        this.notAppliedTags.Clear();
+      }
+      finally
+      {
+        HexWaitCursor.Hide();
+      }
+    }
+
+    private void listLocations_KeyDown(object sender, KeyEventArgs e)
+    {
+      if (e.KeyCode != Keys.Right)
+        return;
+      this.ResetHideLocationListTimer();
+    }
+
+    private void collationLabelPanel_ExpandFiltersBtnClick(object sender, EventArgs e) => this.ExpandHeaderFilters(!this.collationLabelPanel.Expanded);
+
+    private void OnDocCompleteStateChanged(bool Completed)
+    {
+      Row selectedRow = this.listLocations.SelectedRow;
+      if (selectedRow == null)
+        return;
+      selectedRow[2] = (object) (Completed ? 1 : 0);
+    }
+
+    private void FormMain_KeyUp(object sender, KeyEventArgs e)
+    {
+      switch (e.KeyCode)
+      {
+        case Keys.F1:
+          this.footerFilterPanel.ShowNoAction = !this.footerFilterPanel.ShowNoAction;
+          this.UpdateListAfterFilter();
+          e.Handled = true;
+          break;
+        case Keys.F2:
+          this.footerFilterPanel.ShowInvented = !this.footerFilterPanel.ShowInvented;
+          this.UpdateListAfterFilter();
+          e.Handled = true;
+          break;
+      }
+    }
+
+    private void listInventory_KeyUp(object sender, KeyEventArgs e)
+    {
+      switch (e.KeyCode)
+      {
+        case Keys.F3:
+          this.footerFilterPanel.ShowSurplus = !this.footerFilterPanel.ShowSurplus;
+          this.UpdateListAfterFilter();
+          e.Handled = true;
+          break;
+        case Keys.F4:
+          this.footerFilterPanel.ShowMissing = !this.footerFilterPanel.ShowMissing;
+          this.UpdateListAfterFilter();
+          HexWaitCursor.Hide();
+          e.Handled = true;
+          break;
+      }
+    }
+
+    private void OnSettingsChanged()
+    {
+      this.scannerType = (ScannerTypes) HexDBProc.DB.GetPref("SCANNER_TYPE").AsInt32();
+      if (this.scannerType == ScannerTypes.None)
+        this.scannerType = ScannerTypes.LaserScanner;
+      if (this.scannerType == ScannerTypes.RFID && !HexDevice.RfId.IsAvailable)
+        this.scannerType = ScannerTypes.LaserScanner;
+      if (this.scannerType == ScannerTypes.RFID)
+      {
+        if (this.formTagsList == null)
+          this.formTagsList = new FormTagsList();
+        this.headerFilterPanel.ButtonsRfidEnabled = this.m_doc.Status != HexDoc.DocState.Closed;
+        int index = this.m_toolBarItemNames.IndexOf("WriteTag");
+        this.m_toolbar.Items[index].Visible = true;
+        this.m_toolbar.Items[index + 1].Visible = true;
+      }
+      else
+      {
+        this.headerFilterPanel.ButtonsRfidEnabled = false;
+        int index = this.m_toolBarItemNames.IndexOf("WriteTag");
+        this.m_toolbar.Items[index].Visible = false;
+        this.m_toolbar.Items[index + 1].Visible = false;
+      }
+    }
+
+    private void FormMain_SettingsClick(object sender, EventArgs e)
+    {
+      HexWaitCursor.Show();
+      this.DisableScaner();
+      using (FormSettings formSettings = new FormSettings())
+      {
+        if (formSettings.ShowDialog() == DialogResult.OK)
+          this.OnSettingsChanged();
+      }
+      this.ToolTipHide();
+      this.EnableScaner();
+      HexWaitCursor.Hide();
+    }
+
+    private void headerFilterPanel_HeaderOpenRfidListClick(object sender, EventArgs e)
+    {
+      if (this.rfidManager == null || this.formTagsList == null)
+        return;
+      this.DisableScaner();
+      HexWaitCursor.Show();
+      this.formTagsList.SetTagsList(this.notAppliedTags, this.m_doc.ChildDocId, this.actionsPanel.LocationText);
+      if (this.formTagsList.ShowDialog() == DialogResult.OK)
+      {
+        this.DoInventoryList(this.formTagsList.GetSelectedTags());
+        this.formTagsList.RemoveSelectedTags();
+      }
+      this.ToolTipHide();
+      this.listInventory.Focus();
+      HexWaitCursor.Hide();
+      this.EnableScaner();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+      if (disposing && this.components != null)
+        this.components.Dispose();
+      base.Dispose(disposing);
+    }
+
+    private void InitializeComponent()
+    {
+      ComponentResourceManager componentResourceManager = new ComponentResourceManager(typeof (FormMain));
+      MarginPadding marginPadding1 = new MarginPadding(0, 6, 0, 0);
+      MarginPadding marginPadding2 = new MarginPadding(0, 6, 0, 0);
+      this.m_toolbar = new ToolbarControl();
+      this.m_downBtn = new ImageButton();
+      this.vScrollBarInventory = new Resco.Controls.ScrollBar.VScrollBar();
+      this.m_scrollBarButtonDown = new ScrollBarButton();
+      this.m_scrollBarButtonDownHighlight = new ScrollBarButton();
+      this.m_scrollBarTrack = new ScrollBarTrack();
+      this.m_scrollBarThumb = new ScrollBarThumb();
+      this.m_scrollBarThumbHighlight = new ScrollBarThumb();
+      this.m_scrollBarButtonUp = new ScrollBarButton();
+      this.m_scrollBarButtonUpHighLight = new ScrollBarButton();
+      this.m_timerShowScroll = new System.Windows.Forms.Timer();
+      this.listInventory = new Resco.Controls.AdvancedList.AdvancedList();
+      this.textCell1 = new TextCell();
+      this.textCell2 = new TextCell();
+      this.textCell3 = new TextCell();
+      this.ImageListChecked = new ImageList();
+      this.ImageListCheckedWhite = new ImageList();
+      this.ImageListCheckedGrey = new ImageList();
+      this.ImageListCheckedBlue = new ImageList();
+      this.ilBackground = new ImageList();
+      this.scannerScoreboard = new ScannerScoreboard();
+      this.listLocations = new FilterList();
+      this.vScrollBarLocations = new Resco.Controls.ScrollBar.VScrollBar();
+      this.rowTemplateDefault = new RowTemplate();
+      this.textCell4 = new TextCell();
+      this.imageCell1 = new ImageCell();
+      this.rowTemplateGrey = new RowTemplate();
+      this.textCell5 = new TextCell();
+      this.imageCell2 = new ImageCell();
+      this.rowTemplateSelected = new RowTemplate();
+      this.imageCell3 = new ImageCell();
+      this.textCell6 = new TextCell();
+      this.imageCell4 = new ImageCell();
+      this.headerFilterPanel = new HeaderFilterPanel();
+      this.actionsPanel = new ActionsPanel();
+      this.footerFilterPanel = new FooterFilterPanel();
+      this.collationLabelPanel = new CollationLabelPanel();
+      ((ISupportInitialize) this.m_downBtn).BeginInit();
+      this.listLocations.SuspendLayout();
+      this.SuspendLayout();
+      this.m_toolbar.BackgroundImage = (Bitmap) componentResourceManager.GetObject("m_toolbar.BackgroundImage");
+      this.m_toolbar.BackgroundImageVGA = (Bitmap) componentResourceManager.GetObject("m_toolbar.BackgroundImageVGA");
+      this.m_toolbar.Dock = DockStyle.Bottom;
+      this.m_toolbar.Enabled = false;
+      this.m_toolbar.Location = new Point(0, 288);
+      this.m_toolbar.Name = "m_toolbar";
+      this.m_toolbar.SelectedIndex = -1;
+      this.m_toolbar.Size = new Size(240, 32);
+      this.m_toolbar.TabIndex = 10;
+      this.m_toolbar.TouchSensitivity = 5;
+      this.m_toolbar.Visible = false;
+      this.m_toolbar.ItemEntered += new EventHandler(this.m_toolbar_ItemEntered);
+      this.m_downBtn.BorderColor = Color.LightSkyBlue;
+      this.m_downBtn.ButtonStyle = ImageButton.ButtonType.GradientImageButton;
+      this.m_downBtn.Dock = DockStyle.Bottom;
+      this.m_downBtn.GradientColors = new Resco.Controls.OutlookControls.GradientColor(Color.FromArgb(141, 214, 245), Color.FromArgb(0, 92, 168), Resco.Controls.OutlookControls.FillDirection.Vertical);
+      this.m_downBtn.GradientColorsPressed = new Resco.Controls.OutlookControls.GradientColor(Color.FromArgb(141, 214, 245), Color.FromArgb(0, 92, 168), Resco.Controls.OutlookControls.FillDirection.Vertical);
+      this.m_downBtn.ImageDefault = (Image) componentResourceManager.GetObject("m_downBtn.ImageDefault");
+      this.m_downBtn.ImagePressed = (Image) componentResourceManager.GetObject("m_downBtn.ImagePressed");
+      this.m_downBtn.ImageVgaDefault = (Image) componentResourceManager.GetObject("m_downBtn.ImageVgaDefault");
+      this.m_downBtn.ImageVgaPressed = (Image) componentResourceManager.GetObject("m_downBtn.ImageVgaPressed");
+      this.m_downBtn.Location = new Point(0, 274);
+      this.m_downBtn.Name = "m_downBtn";
+      this.m_downBtn.PressedBorderColor = Color.LightSkyBlue;
+      this.m_downBtn.Size = new Size(240, 14);
+      this.m_downBtn.TabIndex = 100;
+      this.m_downBtn.VistaButtonInflate = new Size(-1, -1);
+      this.m_downBtn.Click += new EventHandler(this.DownBtn_Click);
+      this.vScrollBarInventory.BackColor = Color.White;
+      this.vScrollBarInventory.DownButton = this.m_scrollBarButtonDown;
+      this.vScrollBarInventory.DownButtonHeight = 16;
+      this.vScrollBarInventory.DownButtonHighlight = this.m_scrollBarButtonDownHighlight;
+      this.vScrollBarInventory.ExtensionWidth = 8;
+      this.vScrollBarInventory.ForeColor = Color.FromArgb(0, 0, 0);
+      this.vScrollBarInventory.HighTrack = this.m_scrollBarTrack;
+      this.vScrollBarInventory.LargeChange = 1;
+      this.vScrollBarInventory.Location = new Point(232, 88);
+      this.vScrollBarInventory.LowTrack = this.m_scrollBarTrack;
+      this.vScrollBarInventory.MaximumThumbHeight = 42;
+      this.vScrollBarInventory.MinimumThumbHeight = 42;
+      this.vScrollBarInventory.Name = "vScrollBarInventory";
+      this.vScrollBarInventory.Size = new Size(8, 200);
+      this.vScrollBarInventory.TabIndex = 102;
+      this.vScrollBarInventory.Thumb = this.m_scrollBarThumb;
+      this.vScrollBarInventory.ThumbHighlight = this.m_scrollBarThumbHighlight;
+      this.vScrollBarInventory.ThumbMargins = marginPadding1;
+      this.vScrollBarInventory.TrackClickBehavior = ScrollBarTrackClickBehavior.Jump;
+      this.vScrollBarInventory.UpButton = this.m_scrollBarButtonUp;
+      this.vScrollBarInventory.UpButtonHeight = 16;
+      this.vScrollBarInventory.UpButtonHighlight = this.m_scrollBarButtonUpHighLight;
+      this.vScrollBarInventory.ValueChanged += new EventHandler(this.vScrollBarInventory_ValueChanged);
+      this.m_scrollBarButtonDown.ArrowImage = (Image) componentResourceManager.GetObject("m_scrollBarButtonDown.ArrowImage");
+      this.m_scrollBarButtonDown.ArrowImageTransparentColor = Color.Fuchsia;
+      this.m_scrollBarButtonDown.BorderStyle = ScrollBarBorderStyle.None;
+      this.m_scrollBarButtonDown.Image = (Image) componentResourceManager.GetObject("m_scrollBarButtonDown.Image");
+      this.m_scrollBarButtonDownHighlight.ArrowImage = (Image) componentResourceManager.GetObject("m_scrollBarButtonDownHighlight.ArrowImage");
+      this.m_scrollBarButtonDownHighlight.ArrowImageTransparentColor = Color.Magenta;
+      this.m_scrollBarButtonDownHighlight.BorderStyle = ScrollBarBorderStyle.None;
+      this.m_scrollBarButtonDownHighlight.Image = (Image) componentResourceManager.GetObject("m_scrollBarButtonDownHighlight.Image");
+      this.m_scrollBarTrack.BorderStyle = ScrollBarBorderStyle.None;
+      this.m_scrollBarTrack.Image = (Image) componentResourceManager.GetObject("m_scrollBarTrack.Image");
+      this.m_scrollBarThumb.BorderStyle = ScrollBarBorderStyle.None;
+      this.m_scrollBarThumb.GripStyle = ScrollBarThumb.ScrollBarThumbGripStyle.None;
+      this.m_scrollBarThumb.Image = (Image) componentResourceManager.GetObject("m_scrollBarThumb.Image");
+      this.m_scrollBarThumb.ImageTransparentColor = Color.Magenta;
+      this.m_scrollBarThumbHighlight.BorderStyle = ScrollBarBorderStyle.None;
+      this.m_scrollBarThumbHighlight.GripStyle = ScrollBarThumb.ScrollBarThumbGripStyle.None;
+      this.m_scrollBarThumbHighlight.Image = (Image) componentResourceManager.GetObject("m_scrollBarThumbHighlight.Image");
+      this.m_scrollBarThumbHighlight.ImageTransparentColor = Color.Magenta;
+      this.m_scrollBarButtonUp.ArrowImage = (Image) componentResourceManager.GetObject("m_scrollBarButtonUp.ArrowImage");
+      this.m_scrollBarButtonUp.ArrowImageTransparentColor = Color.Fuchsia;
+      this.m_scrollBarButtonUp.BorderStyle = ScrollBarBorderStyle.None;
+      this.m_scrollBarButtonUp.Image = (Image) componentResourceManager.GetObject("m_scrollBarButtonUp.Image");
+      this.m_scrollBarButtonUpHighLight.ArrowImage = (Image) componentResourceManager.GetObject("m_scrollBarButtonUpHighLight.ArrowImage");
+      this.m_scrollBarButtonUpHighLight.ArrowImageTransparentColor = Color.Fuchsia;
+      this.m_scrollBarButtonUpHighLight.BorderStyle = ScrollBarBorderStyle.None;
+      this.m_scrollBarButtonUpHighLight.Image = (Image) componentResourceManager.GetObject("m_scrollBarButtonUpHighLight.Image");
+      this.m_timerShowScroll.Interval = 3000;
+      this.m_timerShowScroll.Tick += new EventHandler(this.TimerShowScroll_Tick);
+      this.listInventory.DataRows.Clear();
+      this.listInventory.Location = new Point(30, 95);
+      this.listInventory.Name = "listInventory";
+      this.listInventory.Size = new Size(186, 173);
+      this.listInventory.TabIndex = 1;
+      this.listInventory.ButtonClick += new ButtonEventHandler(this.listInventory_ButtonClick);
+      this.listInventory.HeaderClick += new CellEventHandler(this.listInventory_HeaderClick);
+      this.listInventory.Scroll += new EventHandler(this.listInventory_Scroll);
+      this.listInventory.Resize += new EventHandler(this.listInventory_Resize);
+      this.listInventory.MouseUp += new MouseEventHandler(this.listInventory_MouseUp);
+      this.listInventory.RowSelect += new RowEventHandler(this.listInventory_RowSelect);
+      this.listInventory.Click += new EventHandler(this.listInventory_Click);
+      this.listInventory.KeyUp += new KeyEventHandler(this.listInventory_KeyUp);
+      this.listInventory.ActiveRowChanged += new EventHandler(this.listInventory_ActiveRowChanged);
+      this.listInventory.KeyDown += new KeyEventHandler(this.listInventory_KeyDown);
+      this.textCell1.CellSource.ColumnIndex = 0;
+      this.textCell1.Location = new Point(2, 2);
+      this.textCell1.Name = "Text";
+      this.textCell1.Size = new Size(-1, 23);
+      this.textCell2.CellSource.ColumnIndex = 0;
+      this.textCell2.Location = new Point(2, 2);
+      this.textCell2.Name = "Text";
+      this.textCell2.Size = new Size(-1, 23);
+      this.textCell3.CellSource.ColumnIndex = 0;
+      this.textCell3.Location = new Point(2, 2);
+      this.textCell3.Name = "Text";
+      this.textCell3.Size = new Size(-1, 23);
+      this.ImageListChecked.ImageSize = new Size(32, 32);
+      this.ImageListChecked.Images.Clear();
+      this.ImageListChecked.Images.Add((Image) componentResourceManager.GetObject("resource"));
+      this.ImageListChecked.Images.Add((Image) componentResourceManager.GetObject("resource1"));
+      this.ImageListCheckedWhite.ImageSize = new Size(32, 32);
+      this.ImageListCheckedWhite.Images.Clear();
+      this.ImageListCheckedWhite.Images.Add((Image) componentResourceManager.GetObject("resource2"));
+      this.ImageListCheckedWhite.Images.Add((Image) componentResourceManager.GetObject("resource3"));
+      this.ImageListCheckedGrey.ImageSize = new Size(32, 32);
+      this.ImageListCheckedGrey.Images.Clear();
+      this.ImageListCheckedGrey.Images.Add((Image) componentResourceManager.GetObject("resource4"));
+      this.ImageListCheckedGrey.Images.Add((Image) componentResourceManager.GetObject("resource5"));
+      this.ImageListCheckedBlue.ImageSize = new Size(32, 32);
+      this.ImageListCheckedBlue.Images.Clear();
+      this.ImageListCheckedBlue.Images.Add((Image) componentResourceManager.GetObject("resource6"));
+      this.ImageListCheckedBlue.Images.Add((Image) componentResourceManager.GetObject("resource7"));
+      this.ilBackground.ImageSize = new Size(240, 25);
+      this.ilBackground.Images.Clear();
+      this.ilBackground.Images.Add((Image) componentResourceManager.GetObject("resource8"));
+      this.scannerScoreboard.Anchor = AnchorStyles.Bottom;
+      this.scannerScoreboard.BackColor = Color.White;
+      this.scannerScoreboard.BorderStyle = BorderStyle.FixedSingle;
+      this.scannerScoreboard.Count = 0;
+      this.scannerScoreboard.Font = new Font("Tahoma", 8f, FontStyle.Regular);
+      this.scannerScoreboard.Location = new Point(90, 144);
+      this.scannerScoreboard.Name = "scannerScoreboard";
+      this.scannerScoreboard.Size = new Size(60, 26);
+      this.scannerScoreboard.TabIndex = 133;
+      this.scannerScoreboard.Visible = false;
+      this.listLocations.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+      this.listLocations.BackColor = Color.FromArgb((int) byte.MaxValue, (int) byte.MaxValue, 192);
+      this.listLocations.Controls.Add((Control) this.vScrollBarLocations);
+      this.listLocations.DataRows.Clear();
+      this.listLocations.GridLines = false;
+      this.listLocations.KeyNavigation = true;
+      this.listLocations.Location = new Point(0, 46);
+      this.listLocations.Name = "listLocations";
+      this.listLocations.ScrollBar = (Control) this.vScrollBarLocations;
+      this.listLocations.ScrollbarWidth = 8;
+      this.listLocations.SelectedTemplateIndex = 1;
+      this.listLocations.Size = new Size(170, 177);
+      this.listLocations.TabIndex = 0;
+      this.listLocations.Templates.Add(this.rowTemplateDefault);
+      this.listLocations.Templates.Add(this.rowTemplateGrey);
+      this.listLocations.Templates.Add(this.rowTemplateSelected);
+      this.listLocations.ToolTipType = ToolTipType.Dots;
+      this.listLocations.TouchScrolling = true;
+      this.listLocations.Visible = false;
+      this.listLocations.LostFocus += new EventHandler(this.listLocations_LostFocus);
+      this.listLocations.RowSelect += new RowEventHandler(this.listLocations_RowSelect);
+      this.listLocations.Click += new EventHandler(this.listLocations_Click);
+      this.listLocations.KeyDown += new KeyEventHandler(this.listLocations_KeyDown);
+      this.vScrollBarLocations.BackColor = Color.FromArgb((int) byte.MaxValue, (int) byte.MaxValue, 192);
+      this.vScrollBarLocations.DownButton = this.m_scrollBarButtonDown;
+      this.vScrollBarLocations.DownButtonHeight = 16;
+      this.vScrollBarLocations.DownButtonHighlight = this.m_scrollBarButtonDownHighlight;
+      this.vScrollBarLocations.ExtensionWidth = 8;
+      this.vScrollBarLocations.ForeColor = Color.FromArgb(0, 0, 0);
+      this.vScrollBarLocations.HighTrack = this.m_scrollBarTrack;
+      this.vScrollBarLocations.LargeChange = 1;
+      this.vScrollBarLocations.Location = new Point(162, 0);
+      this.vScrollBarLocations.LowTrack = this.m_scrollBarTrack;
+      this.vScrollBarLocations.Maximum = 0;
+      this.vScrollBarLocations.MaximumThumbHeight = 42;
+      this.vScrollBarLocations.MinimumThumbHeight = 42;
+      this.vScrollBarLocations.Name = "vScrollBarLocations";
+      this.vScrollBarLocations.Size = new Size(8, 177);
+      this.vScrollBarLocations.TabIndex = 133;
+      this.vScrollBarLocations.TabStop = false;
+      this.vScrollBarLocations.Thumb = this.m_scrollBarThumb;
+      this.vScrollBarLocations.ThumbHighlight = this.m_scrollBarThumbHighlight;
+      this.vScrollBarLocations.ThumbMargins = marginPadding2;
+      this.vScrollBarLocations.TrackClickBehavior = ScrollBarTrackClickBehavior.Jump;
+      this.vScrollBarLocations.UpButton = this.m_scrollBarButtonUp;
+      this.vScrollBarLocations.UpButtonHeight = 16;
+      this.vScrollBarLocations.UpButtonHighlight = this.m_scrollBarButtonUpHighLight;
+      this.rowTemplateDefault.BackColor = Color.White;
+      this.rowTemplateDefault.CellTemplates.Add((Cell) this.textCell4);
+      this.rowTemplateDefault.CellTemplates.Add((Cell) this.imageCell1);
+      this.rowTemplateDefault.GradientBackColor = new Resco.Controls.AdvancedList.GradientColor(Color.Transparent, Color.Transparent, Color.Transparent, Color.Transparent, Resco.Controls.AdvancedList.FillDirection.Vertical);
+      this.rowTemplateDefault.Height = 25;
+      this.rowTemplateDefault.Name = "rowTemplateDefault";
+      this.textCell4.CellSource.ColumnIndex = 0;
+      this.textCell4.Location = new Point(16, 4);
+      this.textCell4.Name = "Text";
+      this.textCell4.Size = new Size(-1, 23);
+      this.imageCell1.AutoResize = true;
+      this.imageCell1.AutoTransparent = true;
+      this.imageCell1.CellSource.ColumnIndex = 2;
+      this.imageCell1.ImageList = (Component) this.ImageListCheckedWhite;
+      this.imageCell1.Location = new Point(0, 3);
+      this.imageCell1.Name = "img";
+      this.imageCell1.Size = new Size(16, 16);
+      this.rowTemplateGrey.BackColor = Color.Silver;
+      this.rowTemplateGrey.CellTemplates.Add((Cell) this.textCell5);
+      this.rowTemplateGrey.CellTemplates.Add((Cell) this.imageCell2);
+      this.rowTemplateGrey.GradientBackColor = new Resco.Controls.AdvancedList.GradientColor(Color.Transparent, Color.Transparent, Color.Transparent, Color.Transparent, Resco.Controls.AdvancedList.FillDirection.Vertical);
+      this.rowTemplateGrey.Height = 25;
+      this.rowTemplateGrey.Name = "rowTemplateGrey";
+      this.textCell5.CellSource.ColumnIndex = 0;
+      this.textCell5.Location = new Point(16, 4);
+      this.textCell5.Name = "text";
+      this.textCell5.Size = new Size(-1, 23);
+      this.imageCell2.AutoResize = true;
+      this.imageCell2.AutoTransparent = true;
+      this.imageCell2.CellSource.ColumnIndex = 2;
+      this.imageCell2.ImageList = (Component) this.ImageListCheckedGrey;
+      this.imageCell2.Location = new Point(0, 3);
+      this.imageCell2.Name = "img";
+      this.imageCell2.Size = new Size(16, 16);
+      this.rowTemplateSelected.CellTemplates.Add((Cell) this.imageCell3);
+      this.rowTemplateSelected.CellTemplates.Add((Cell) this.textCell6);
+      this.rowTemplateSelected.CellTemplates.Add((Cell) this.imageCell4);
+      this.rowTemplateSelected.GradientBackColor = new Resco.Controls.AdvancedList.GradientColor(Color.Transparent, Color.Transparent, Color.Transparent, Color.Transparent, Resco.Controls.AdvancedList.FillDirection.Vertical);
+      this.rowTemplateSelected.Height = 25;
+      this.rowTemplateSelected.Name = "rowTemplateSelected";
+      this.imageCell3.AutoResize = true;
+      this.imageCell3.CellSource.ConstantData = "0";
+      this.imageCell3.ImageIndex = 0;
+      this.imageCell3.ImageList = (Component) this.ilBackground;
+      this.imageCell3.Location = new Point(0, 0);
+      this.imageCell3.Name = "background";
+      this.imageCell3.Size = new Size(-1, 25);
+      this.textCell6.CellSource.ColumnIndex = 0;
+      this.textCell6.Location = new Point(16, 4);
+      this.textCell6.Name = "Text";
+      this.textCell6.Size = new Size(-1, 23);
+      this.imageCell4.AutoResize = true;
+      this.imageCell4.AutoTransparent = true;
+      this.imageCell4.CellSource.ColumnIndex = 2;
+      this.imageCell4.ImageList = (Component) this.ImageListCheckedBlue;
+      this.imageCell4.Location = new Point(0, 3);
+      this.imageCell4.Name = "img";
+      this.imageCell4.Size = new Size(16, 16);
+      this.headerFilterPanel.BackColor = Color.FromArgb((int) byte.MaxValue, (int) byte.MaxValue, 192);
+      this.headerFilterPanel.ButtonBpEnabled = true;
+      this.headerFilterPanel.ButtonLocEnabled = true;
+      this.headerFilterPanel.Location = new Point(0, 47);
+      this.headerFilterPanel.Name = "headerFilterPanel";
+      this.headerFilterPanel.ShowingField = "Штрих-код";
+      this.headerFilterPanel.Size = new Size(240, 25);
+      this.headerFilterPanel.TabIndex = 132;
+      this.headerFilterPanel.Visible = false;
+      this.headerFilterPanel.HeaderLocBtnClick += new EventHandler(this.headerFilterPanel_HeaderLocBtnClick);
+      this.headerFilterPanel.HeaderRightBtnClick += new EventHandler(this.headerFilterPanel_HeaderRightBtnClick);
+      this.headerFilterPanel.HeaderOpenRfidListClick += new EventHandler(this.headerFilterPanel_HeaderOpenRfidListClick);
+      this.headerFilterPanel.HeaderBPBtnClick += new EventHandler(this.headerFilterPanel_HeaderBPBtnClick);
+      this.headerFilterPanel.HeaderCollapseBtnClick += new EventHandler(this.headerFilterPanel_HeaderCollapseBtnClick);
+      this.headerFilterPanel.HeaderLeftBtnClick += new EventHandler(this.headerFilterPanel_HeaderLeftBtnClick);
+      this.actionsPanel.BackColor = Color.FromArgb((int) byte.MaxValue, (int) byte.MaxValue, 192);
+      this.actionsPanel.CancelActionBtnEnabled = true;
+      this.actionsPanel.Font = new Font("Tahoma", 8f, FontStyle.Regular);
+      this.actionsPanel.Location = new Point(0, 22);
+      this.actionsPanel.LocationBtnEnabled = true;
+      this.actionsPanel.LocationText = "";
+      this.actionsPanel.ManualInvBtnEnabled = true;
+      this.actionsPanel.ManualMissingBtnEnabled = true;
+      this.actionsPanel.Name = "actionsPanel";
+      this.actionsPanel.Size = new Size(240, 25);
+      this.actionsPanel.TabIndex = 128;
+      this.actionsPanel.ManualMissingClick += new EventHandler(this.actionsPanel_ManualMissingClick);
+      this.actionsPanel.LocationBtnClick += new EventHandler(this.actionsPanel_LocationBtnClick);
+      this.actionsPanel.CancelActionClick += new EventHandler(this.actionsPanel_CancelActionClick);
+      this.actionsPanel.ExpandFiltersBtnClick += new EventHandler(this.actionsPanel_ExpandFiltersBtnClick);
+      this.actionsPanel.ManualInvClick += new EventHandler(this.actionsPanel_ManualInvClick);
+      this.footerFilterPanel.BackColor = Color.FromArgb((int) byte.MaxValue, (int) byte.MaxValue, 192);
+      this.footerFilterPanel.Location = new Point(0, 268);
+      this.footerFilterPanel.MissingBtnEnabled = true;
+      this.footerFilterPanel.Name = "footerFilterPanel";
+      this.footerFilterPanel.NoAction = 0;
+      this.footerFilterPanel.Size = new Size(240, 20);
+      this.footerFilterPanel.SurplusBtnEnabled = true;
+      this.footerFilterPanel.TabIndex = 131;
+      this.footerFilterPanel.FilterNoActionClick += new EventHandler(this.footerFilterPanel_FilterChanged);
+      this.footerFilterPanel.FilterMissingClick += new EventHandler(this.footerFilterPanel_FilterChanged);
+      this.footerFilterPanel.FilterInventedClick += new EventHandler(this.footerFilterPanel_FilterChanged);
+      this.footerFilterPanel.FilterSurplusClick += new EventHandler(this.footerFilterPanel_FilterChanged);
+      this.collationLabelPanel.Location = new Point(0, 22);
+      this.collationLabelPanel.Name = "collationLabelPanel";
+      this.collationLabelPanel.Size = new Size(240, 25);
+      this.collationLabelPanel.TabIndex = (int) sbyte.MaxValue;
+      this.collationLabelPanel.ExpandFiltersBtnClick += new EventHandler(this.collationLabelPanel_ExpandFiltersBtnClick);
+      this.AutoScaleDimensions = new SizeF(96f, 96f);
+      this.AutoScaleMode = AutoScaleMode.Dpi;
+      this.BackColor = Color.White;
+      ((Control) this).ClientSize = new Size(240, 320);
+      this.ControlBox = false;
+      this.Controls.Add((Control) this.scannerScoreboard);
+      this.Controls.Add((Control) this.listLocations);
+      this.Controls.Add((Control) this.headerFilterPanel);
+      this.Controls.Add((Control) this.actionsPanel);
+      this.Controls.Add((Control) this.footerFilterPanel);
+      this.Controls.Add((Control) this.vScrollBarInventory);
+      this.Controls.Add((Control) this.listInventory);
+      this.Controls.Add((Control) this.m_downBtn);
+      this.Controls.Add((Control) this.m_toolbar);
+      this.Controls.Add((Control) this.collationLabelPanel);
+      this.FormBorderStyle = FormBorderStyle.None;
+      ((Control) this).Location = new Point(0, 0);
+      this.MinimizeBox = false;
+      this.Name = nameof (FormMain);
+      this.SettingsBtnEnabled = true;
+      this.Text = "Инвентаризация";
+      this.WindowState = FormWindowState.Maximized;
+      this.KeyUp += new KeyEventHandler(this.FormMain_KeyUp);
+      this.Paint += new PaintEventHandler(this.FormMain_Paint);
+      this.SettingsClick += new EventHandler(this.FormMain_SettingsClick);
+      this.HelpClick += new EventHandler(this.FormMain_HelpClick);
+      this.Load += new EventHandler(this.FormMain_Load);
+      this.Closing += new CancelEventHandler(this.FormMain_Closing);
+      ((ISupportInitialize) this.m_downBtn).EndInit();
+      this.listLocations.ResumeLayout(false);
+      this.ResumeLayout(false);
+    }
+
+    private void OnTimerScrollBar(object param) => this.Invoke((Delegate) this.HideScrollBarHandler);
+
+    private void HideScrollBar() => this.vScrollBarInventory.Hide();
+
+    private void ResetScrollbarTimer()
+    {
+      if (!this.vScrollBarInventory.Visible)
+      {
+        this.vScrollBarInventory.Show();
+        this.vScrollBarInventory.Update();
+      }
+      this.scrollTimer.Change(2500, -1);
+    }
+
+    private float GetNumVisibleRows()
+    {
+      Resco.Controls.AdvancedList.AdvancedList listInventory = this.listInventory;
+      return (float) (listInventory.ClientSize.Height - (listInventory.ShowHeader ? listInventory.HeaderHeight : 0) - (listInventory.ShowFooter ? listInventory.FooterHeight : 0)) / (float) listInventory.Templates[1].Height;
+    }
+
+    private static float CalcC0(float RowsCount, float NumVisibleRows)
+    {
+      if ((double) RowsCount - (double) NumVisibleRows - 1.0 == 0.0)
+        return 1f;
+      float num = RowsCount / (float) ((double) RowsCount - (double) NumVisibleRows - 1.0);
+      return (double) num <= 0.0 ? 1f : num;
+    }
+
+    private static float CalcC1(float RowsCount, float NumVisibleRows)
+    {
+      if ((double) RowsCount - (double) NumVisibleRows + 1.0 == 0.0)
+        return 1f;
+      float num = RowsCount / (float) ((double) RowsCount - (double) NumVisibleRows + 1.0);
+      return (double) num <= 0.0 ? 1f : num;
+    }
+
+    private void InitScrollbar(int CountIDs)
+    {
+      this.vScrollBarInventory.Hide();
+      int num = CountIDs * this.listInventory.Templates[1].Height - this.listInventory.Height + (this.listInventory.ShowHeader ? this.listInventory.HeaderRow.Height : 0) + (this.listInventory.ShowFooter ? this.listInventory.FooterRow.Height : 0);
+      this.vScrollBarInventory.Maximum = num < 1 ? 1 : num;
+    }
+
+    private void OnInventoryScroll()
+    {
+      if (this.selectionByClick || this.skipScrollEvent)
+        return;
+      this.ResetScrollbarTimer();
+      if (this.listInventory.TopRowIndex < 0 || this.listInventory.DataRows.Count < 1)
+        return;
+      int tag = (int) this.listInventory.DataRows[this.listInventory.TopRowIndex].Tag;
+      this.skipScrollEvent = true;
+      this.vScrollBarInventory.Value = tag * this.listInventory.Templates[1].Height - this.listInventory.TopRowOffset;
+      if (this.lastIdIndex == tag)
+      {
+        this.skipScrollEvent = false;
+      }
+      else
+      {
+        if (Math.Abs(this.lastIdIndex - tag) >= 15)
+        {
+          this.lastIdIndex = tag;
+          int topRowOffset = this.listInventory.TopRowOffset;
+          this.listInventory.BeginUpdate();
+          this.LoadDataToList(tag, (long) this.m_doc.ChildDocId, topRowOffset, false);
+          this.SelectRowWithIdIndex(this.selectedIdIndex);
+          this.listInventory.EndUpdate();
+        }
+        this.skipScrollEvent = false;
+      }
+    }
+
+    private void OnVScrollbar()
+    {
+      if (this.skipScrollEvent)
+        return;
+      this.ResetScrollbarTimer();
+      this.skipScrollEvent = true;
+      this.listInventory.BeginUpdate();
+      int NewIdIndex = this.vScrollBarInventory.Value / this.listInventory.Templates[1].Height;
+      int ScrollOffset = NewIdIndex * this.listInventory.Templates[1].Height - this.vScrollBarInventory.Value;
+      this.LoadDataToList(NewIdIndex, (long) this.m_doc.ChildDocId, ScrollOffset, false);
+      this.SelectRowWithIdIndex(this.selectedIdIndex);
+      this.listInventory.EndUpdate();
+      this.skipScrollEvent = false;
+    }
+
+    private bool FindAndSelectItem(long id)
+    {
+      int NewIdIndex = -1;
+      for (int index = 0; index < this.IDs.Count; ++index)
+      {
+        if (id == (long) this.IDs[index])
+        {
+          NewIdIndex = index;
+          break;
+        }
+      }
+      if (NewIdIndex == -1)
+        return false;
+      this.skipScrollEvent = true;
+      bool andSelectItem = false;
+      this.selectedIdIndex = NewIdIndex;
+      this.LoadDataToList(NewIdIndex, (long) this.m_doc.ChildDocId, 0, true);
+      foreach (Row dataRow in (CollectionBase) this.listInventory.DataRows)
+      {
+        if ((int) dataRow.Tag == NewIdIndex)
+        {
+          andSelectItem = true;
+          dataRow.Selected = true;
+          this.listInventory.EnsureVisible(dataRow, false);
+          this.SetItemExtraData(dataRow);
+          this.SetActionButtonsStates(this.listInventory.SelectedRow);
+          break;
+        }
+      }
+      this.skipScrollEvent = false;
+      return andSelectItem;
+    }
+
+    private bool IsItemInIDsList(int UniqueItemId)
+    {
+      for (int index = 0; index < this.IDs.Count; ++index)
+      {
+        if (UniqueItemId == this.IDs[index])
+          return true;
+      }
+      return false;
+    }
+
+    private void LoadTopListItems()
+    {
+      this.skipScrollEvent = true;
+      this.LoadDataToList(0, (long) this.m_doc.ChildDocId, 0, true);
+      this.SelectFirstRow();
+      this.skipScrollEvent = false;
+    }
+
+    private bool FindAndSelectRowWithIdIndex(int IdIndex)
+    {
+      if (IdIndex < 0)
+        return false;
+      this.skipScrollEvent = true;
+      bool selectRowWithIdIndex = false;
+      this.LoadDataToList(IdIndex, (long) this.m_doc.ChildDocId, 0, true);
+      foreach (Row dataRow in (CollectionBase) this.listInventory.DataRows)
+      {
+        if ((int) dataRow.Tag == IdIndex)
+        {
+          selectRowWithIdIndex = true;
+          dataRow.Selected = true;
+          this.listInventory.EnsureVisible(dataRow);
+          this.SetItemExtraData(dataRow);
+          this.SetActionButtonsStates(this.listInventory.SelectedRow);
+          break;
+        }
+      }
+      this.skipScrollEvent = false;
+      return selectRowWithIdIndex;
+    }
+
+    private void SelectRowWithIdIndex(int IdIndex)
+    {
+      if (this.listInventory.DataRows.Count < 1 || IdIndex < (int) this.listInventory.DataRows[0].Tag || IdIndex > (int) this.listInventory.DataRows[this.listInventory.DataRows.Count - 1].Tag)
+        return;
+      this.skipScrollEvent = true;
+      foreach (Row dataRow in (CollectionBase) this.listInventory.DataRows)
+      {
+        if ((int) dataRow.Tag == IdIndex)
+        {
+          dataRow.Selected = true;
+          this.SetItemExtraData(dataRow);
+          this.SetActionButtonsStates(this.listInventory.SelectedRow);
+          break;
+        }
+      }
+      this.skipScrollEvent = false;
+    }
+
+    private void SelectFirstRow()
+    {
+      if (this.listInventory.DataRows.Count > 0)
+      {
+        this.listInventory.ActiveRowIndex = 0;
+        this.selectedIdIndex = (int) this.listInventory.DataRows[0].Tag;
+        this.SetActionButtonsStates(this.listInventory.SelectedRow);
+      }
+      else
+        this.SetActionButtonsStates((Row) null);
+    }
+
+    private void OnKeyUp()
+    {
+      int activeRowIndex = this.listInventory.ActiveRowIndex;
+      if (activeRowIndex == -1)
+      {
+        this.listInventory.ActiveRowIndex = this.listInventory.TopRowIndex;
+      }
+      else
+      {
+        this.skipScrollEvent = true;
+        int tag1 = (int) this.listInventory.DataRows[this.listInventory.TopRowIndex].Tag;
+        if (activeRowIndex <= 3)
+        {
+          if ((int) this.listInventory.DataRows[activeRowIndex].Tag < 1)
+          {
+            this.skipScrollEvent = false;
+            return;
+          }
+          this.listInventory.BeginUpdate();
+          int tag2 = (int) this.listInventory.DataRows[0].Tag;
+          this.LoadDataToList(--tag1, (long) this.m_doc.ChildDocId, 0, false);
+          int num = (int) this.listInventory.DataRows[0].Tag - tag2;
+          int ix = activeRowIndex - num - 1;
+          this.listInventory.EnsureVisible(ix, true);
+          this.listInventory.ActiveRowIndex = ix;
+          this.listInventory.EndUpdate();
+        }
+        else
+        {
+          --this.listInventory.ActiveRowIndex;
+          if (this.listInventory.ActiveRowIndex < this.listInventory.TopRowIndex)
+            this.listInventory.EnsureVisible(this.listInventory.ActiveRowIndex, false);
+        }
+        this.vScrollBarInventory.Value = (int) ((double) tag1 * (double) this.C0);
+        this.skipScrollEvent = false;
+      }
+    }
+
+    private void OnKeyDown()
+    {
+      int activeRowIndex = this.listInventory.ActiveRowIndex;
+      if (activeRowIndex == -1)
+      {
+        this.listInventory.ActiveRowIndex = this.listInventory.TopRowIndex;
+      }
+      else
+      {
+        this.skipScrollEvent = true;
+        int tag1 = (int) this.listInventory.DataRows[this.listInventory.TopRowIndex].Tag;
+        if (activeRowIndex > this.listInventory.DataRows.Count - 3)
+        {
+          if ((int) this.listInventory.DataRows[activeRowIndex].Tag >= this.IDs.Count - 1)
+          {
+            this.skipScrollEvent = false;
+            return;
+          }
+          this.listInventory.BeginUpdate();
+          int tag2 = (int) this.listInventory.DataRows[0].Tag;
+          this.LoadDataToList(++tag1, (long) this.m_doc.ChildDocId, 0, false);
+          int num = (int) this.listInventory.DataRows[0].Tag - tag2;
+          int ix = activeRowIndex - num + 1;
+          this.listInventory.EnsureVisible(ix, false);
+          this.listInventory.ActiveRowIndex = ix;
+          this.listInventory.EndUpdate();
+        }
+        else
+          ++this.listInventory.ActiveRowIndex;
+        this.vScrollBarInventory.Value = (int) ((double) tag1 * (double) this.C0);
+        this.skipScrollEvent = false;
+      }
+    }
+
+    private long ExpandedComplectId
+    {
+      get => this.\u003CExpandedComplectId\u003Ek__BackingField;
+      set => this.\u003CExpandedComplectId\u003Ek__BackingField = value;
+    }
+
+    private void ExpandComplect(long ComplectId)
+    {
+      HexWaitCursor.Show();
+      try
+      {
+        this.ComplectID = ComplectId;
+        this.ExpandedComplectId = ComplectId;
+        HexDocDetailUniqItem docDetailUniqItem;
+        if (this.IsCollationMode)
+        {
+          int int32 = Convert.ToInt32(this.listInventory.SelectedRow[11]);
+          docDetailUniqItem = this.m_doc.DetailGet((int) ComplectId, int32);
+        }
+        else
+          docDetailUniqItem = this.m_doc.DetailGet(ComplectId);
+        HexBPLoc hexBpLoc = docDetailUniqItem != null ? HexBPLoc.GetBusinessPartner((long) docDetailUniqItem.BP_ID) : throw new Exception("Комплект не найден в документе");
+        HexBPLoc location = HexBPLoc.GetLocation((long) docDetailUniqItem.LocID);
+        this.listInventory.HeaderRow.TemplateIndex = this.bShowExtendedComplectHeader ? 5 : 0;
+        this.listInventory.HeaderRow.SetData((ICollection) new object[4]
+        {
+          (object) docDetailUniqItem.UniqueItemID,
+          (object) docDetailUniqItem.ItemName,
+          hexBpLoc == null ? (object) "Не найдено" : (object) hexBpLoc.Name,
+          location == null ? (object) "Не найдено" : (object) location.Name
+        });
+        this.listInventory.ShowHeader = true;
+        this.BeginUpdateMainList(true);
+        this.SelectFirstRow();
+        this.HideScrollBar();
+      }
+      finally
+      {
+        HexWaitCursor.Hide();
+      }
+    }
+
+    private void CollapseComplect()
+    {
+      HexWaitCursor.Show();
+      try
+      {
+        this.listInventory.ShowHeader = false;
+        this.BeginUpdateMainList(false);
+        if (!this.FindAndSelectItem(this.ExpandedComplectId))
+          this.LoadTopListItems();
+        this.HideScrollBar();
+      }
+      catch
+      {
+      }
+      finally
+      {
+        HexWaitCursor.Hide();
+      }
+    }
+
+    private void SelectNextIdentifier()
+    {
+      this.listInventory.BeginUpdate();
+      switch (this.CurIdentifier)
+      {
+        case FormMain.TemplateFields.Barcode:
+          this.listInventory.Templates[1].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[2].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[3].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[4].CellTemplates[1].CellSource.ColumnIndex = 7;
+          this.CurIdentifier = FormMain.TemplateFields.SerialNumber;
+          this.headerFilterPanel.ShowingField = "Сер. №";
+          break;
+        case FormMain.TemplateFields.InvNumber:
+          this.listInventory.Templates[1].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[2].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[3].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[4].CellTemplates[1].CellSource.ColumnIndex = 5;
+          this.CurIdentifier = FormMain.TemplateFields.Barcode;
+          this.headerFilterPanel.ShowingField = "Штрих-код";
+          break;
+        case FormMain.TemplateFields.SerialNumber:
+          this.listInventory.Templates[1].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[2].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[3].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[4].CellTemplates[1].CellSource.ColumnIndex = 6;
+          this.CurIdentifier = FormMain.TemplateFields.InvNumber;
+          this.headerFilterPanel.ShowingField = "Инв. №";
+          break;
+      }
+      this.listInventory.EndUpdate();
+    }
+
+    private void SelectPrevIdentifier()
+    {
+      this.listInventory.BeginUpdate();
+      switch (this.CurIdentifier)
+      {
+        case FormMain.TemplateFields.Barcode:
+          this.listInventory.Templates[1].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[2].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[3].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[4].CellTemplates[1].CellSource.ColumnIndex = 6;
+          this.CurIdentifier = FormMain.TemplateFields.InvNumber;
+          this.headerFilterPanel.ShowingField = "Инв. №";
+          break;
+        case FormMain.TemplateFields.InvNumber:
+          this.listInventory.Templates[1].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[2].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[3].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[4].CellTemplates[1].CellSource.ColumnIndex = 7;
+          this.CurIdentifier = FormMain.TemplateFields.SerialNumber;
+          this.headerFilterPanel.ShowingField = "Сер. №";
+          break;
+        case FormMain.TemplateFields.SerialNumber:
+          this.listInventory.Templates[1].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[2].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[3].CellTemplates[1].CellSource.ColumnIndex = this.listInventory.Templates[4].CellTemplates[1].CellSource.ColumnIndex = 5;
+          this.CurIdentifier = FormMain.TemplateFields.Barcode;
+          this.headerFilterPanel.ShowingField = "Штрих-код";
+          break;
+      }
+      this.listInventory.EndUpdate();
+    }
+
+    private List<int> LoadIDs(long DocId)
+    {
+      int[] counters = new int[5];
+      List<int> intList = !this.m_complect_mode ? this.LoadItemsIDs(DocId, counters) : this.LoadComplectItemsIDs(DocId, (int) this.ComplectID, counters);
+      this.FooterSetData(counters[0], counters[1], counters[2], counters[3]);
+      return intList;
+    }
+
+    private List<FormMain.ItemStruct> LoadAllItemsIDs(long DocId)
+    {
+      List<FormMain.ItemStruct> itemStructList = new List<FormMain.ItemStruct>();
+      using (DbCommand command = HexDBProc.DB.DbConnection.CreateCommand())
+      {
+        command.CommandText = DocId > 0L ? string.Format("SELECT di.unique_item_id, di.action_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN _FLT_BP AS FBP ON DI.bp_id = FBP.bp_id JOIN _FLT_LOCATION AS FL ON DI.location_id = FL.location_id WHERE doc_id = {0} AND di.type <> 2", (object) DocId) : string.Format("SELECT di.unique_item_id, di.action_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN _FLT_BP AS FBP ON DI.bp_id = FBP.bp_id JOIN _FLT_LOCATION AS FL ON DI.location_id = FL.location_id WHERE doc_id in (SELECT d.doc_id FROM DOC as d WHERE d.doc_id_parent = {0} AND d.type_id in (1,3)) AND di.type <> 2", (object) this.m_doc.ID);
+        IDataReader dataReader;
+        using (dataReader = (IDataReader) command.ExecuteReader())
+        {
+          while (dataReader.Read())
+            itemStructList.Add(new FormMain.ItemStruct(dataReader.GetInt32(0), dataReader.GetByte(1)));
+        }
+      }
+      return itemStructList;
+    }
+
+    private List<FormMain.ComplectItemStruct> LoadAllComplectItemsIDs(long DocId)
+    {
+      List<FormMain.ComplectItemStruct> complectItemStructList = new List<FormMain.ComplectItemStruct>();
+      using (DbCommand command = HexDBProc.DB.DbConnection.CreateCommand())
+      {
+        command.CommandText = DocId > 0L ? string.Format("SELECT di.unique_item_id, di.unique_item_parent_id, di.action_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN _FLT_BP AS FBP ON DI.bp_id = FBP.bp_id JOIN _FLT_LOCATION AS FL ON DI.location_id = FL.location_id WHERE di.doc_id = {0} AND di.type = 5", (object) DocId) : string.Format("SELECT di.unique_item_id, di.unique_item_parent_id, di.action_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN _FLT_BP AS FBP ON DI.bp_id = FBP.bp_id JOIN _FLT_LOCATION AS FL ON DI.location_id = FL.location_id WHERE doc_id in (SELECT d.doc_id FROM DOC as d WHERE d.doc_id_parent = {0}) AND di.type = 5 AND di.action_id > 0", (object) this.m_doc.ID);
+        IDataReader dataReader;
+        using (dataReader = (IDataReader) command.ExecuteReader())
+        {
+          while (dataReader.Read())
+            complectItemStructList.Add(new FormMain.ComplectItemStruct(dataReader.GetInt32(0), dataReader.GetInt32(1), dataReader.GetByte(2)));
+        }
+      }
+      return complectItemStructList;
+    }
+
+    private List<int> LoadItemsIDs(long DocId, int[] counters)
+    {
+      List<int> intList = new List<int>();
+      if (this.ItemsList == null)
+        this.ItemsList = this.LoadAllItemsIDs(DocId);
+      int index1 = 0;
+      for (int index2 = 0; index2 < this.ItemsList.Count; ++index2)
+      {
+        switch ((InventoryActions) this.ItemsList[index2].ActionID)
+        {
+          case InventoryActions.NoAction:
+          case InventoryActions.SurplusNoAction:
+            if (this.footerFilterPanel.ShowNoAction)
+              intList.Add(this.ItemsList[index2].ID);
+            index1 = 0;
+            break;
+          case InventoryActions.AutoConfirm:
+          case InventoryActions.ManualConfirm:
+            if (this.footerFilterPanel.ShowInvented)
+              intList.Add(this.ItemsList[index2].ID);
+            index1 = 1;
+            break;
+          case InventoryActions.Missing:
+          case InventoryActions.MissingAuto:
+          case InventoryActions.SurplusMissing:
+          case InventoryActions.SurplusMissingAuto:
+            if (this.footerFilterPanel.ShowMissing)
+              intList.Add(this.ItemsList[index2].ID);
+            index1 = 3;
+            break;
+          case InventoryActions.SurplusAuto:
+          case InventoryActions.SurplusManually:
+            if (this.footerFilterPanel.ShowSurplus)
+              intList.Add(this.ItemsList[index2].ID);
+            index1 = 2;
+            break;
+        }
+        ++counters[index1];
+      }
+      return intList;
+    }
+
+    private List<int> LoadComplectItemsIDs(long DocId, int ComplectId, int[] counters)
+    {
+      List<int> intList = new List<int>();
+      if (this.ComplectItemsList == null)
+        this.ComplectItemsList = this.LoadAllComplectItemsIDs(DocId);
+      int index1 = 0;
+      for (int index2 = 0; index2 < this.ComplectItemsList.Count; ++index2)
+      {
+        if (this.ComplectItemsList[index2].ParentID == ComplectId)
+        {
+          switch ((InventoryActions) this.ComplectItemsList[index2].ActionID)
+          {
+            case InventoryActions.NoAction:
+            case InventoryActions.SurplusNoAction:
+              if (this.footerFilterPanel.ShowNoAction)
+                intList.Add(this.ComplectItemsList[index2].ID);
+              index1 = 0;
+              break;
+            case InventoryActions.AutoConfirm:
+            case InventoryActions.ManualConfirm:
+              if (this.footerFilterPanel.ShowInvented)
+                intList.Add(this.ComplectItemsList[index2].ID);
+              index1 = 1;
+              break;
+            case InventoryActions.Missing:
+            case InventoryActions.MissingAuto:
+            case InventoryActions.SurplusMissing:
+            case InventoryActions.SurplusMissingAuto:
+              if (this.footerFilterPanel.ShowMissing)
+                intList.Add(this.ComplectItemsList[index2].ID);
+              index1 = 3;
+              break;
+            case InventoryActions.SurplusAuto:
+            case InventoryActions.SurplusManually:
+              if (this.footerFilterPanel.ShowSurplus)
+                intList.Add(this.ComplectItemsList[index2].ID);
+              index1 = 2;
+              break;
+          }
+          ++counters[index1];
+        }
+      }
+      return intList;
+    }
+
+    private void ClearCachedIDs()
+    {
+      if (this.ItemsList != null)
+        this.ItemsList.Clear();
+      if (this.ComplectItemsList != null)
+        this.ComplectItemsList.Clear();
+      this.ItemsList = (List<FormMain.ItemStruct>) null;
+      this.ComplectItemsList = (List<FormMain.ComplectItemStruct>) null;
+    }
+
+    private void LoadDataToList(int NewIdIndex, long DocId, int ScrollOffset, bool SuspendRedraw)
+    {
+      int num1 = NewIdIndex - 3 - 15 > 0 ? NewIdIndex - 3 - 15 : 0;
+      int num2 = NewIdIndex + 10 + 15 > this.IDs.Count ? this.IDs.Count : NewIdIndex + 10 + 15;
+      if (num2 == this.IDs.Count && num2 - num1 < 8)
+        num1 = num2 - 8 > 0 ? num2 - 8 : 0;
+      StringBuilder stringBuilder = new StringBuilder();
+      for (int index = num1; index < num2; ++index)
+      {
+        stringBuilder.Append(",");
+        stringBuilder.Append(this.IDs[index].ToString());
+      }
+      if (stringBuilder.Length > 0)
+        stringBuilder.Remove(0, 1);
+      bool IsGrey = num1 % 2 == 1;
+      if (SuspendRedraw)
+        this.listInventory.BeginUpdate();
+      this.listInventory.DataRows.Clear();
+      int num3 = num1;
+      using (DbCommand command = HexDBProc.DB.DbConnection.CreateCommand())
+      {
+        command.CommandText = DocId <= 0L ? (this.m_complect_mode ? string.Format("SELECT di.unique_item_id, di.type, di.action_id, i.name, ui.barcode, ui.inventory_number, ui.serial_number, case when di.from_location_id = di.location_id then 0 else 1 end as IsMoved, doc_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN UNIQUE_ITEM AS ui ON di.unique_item_id = ui.unique_item_id JOIN ITEM AS i ON ui.item_id = i.item_id WHERE doc_id in (SELECT d.doc_id FROM DOC as d WHERE d.doc_id_parent = {0}) AND di.unique_item_id in ({1})", (object) this.m_doc.ID, (object) stringBuilder) : string.Format("SELECT di.unique_item_id, di.type, di.action_id, i.name, ui.barcode, ui.inventory_number, ui.serial_number, case when di.from_location_id = di.location_id then 0 else 1 end as IsMoved, di.doc_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN UNIQUE_ITEM AS ui ON di.unique_item_id = ui.unique_item_id JOIN ITEM AS i ON ui.item_id = i.item_id WHERE doc_id in (SELECT d.doc_id FROM DOC as d WHERE d.doc_id_parent = {0} AND d.type_id in (1,3)) AND di.unique_item_id IN ({1})", (object) this.m_doc.ID, (object) stringBuilder)) : (this.m_complect_mode ? string.Format("SELECT di.unique_item_id, di.type, di.action_id, i.name, ui.barcode, ui.inventory_number, ui.serial_number, case when di.from_location_id = di.location_id then 0 else 1 end as IsMoved, doc_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN UNIQUE_ITEM AS ui ON di.unique_item_id = ui.unique_item_id JOIN ITEM AS i ON ui.item_id = i.item_id WHERE di.doc_id = {0} AND di.unique_item_id in ({1})", (object) DocId, (object) stringBuilder) : string.Format("SELECT di.unique_item_id, di.type, di.action_id, i.name, ui.barcode, ui.inventory_number, ui.serial_number, case when di.from_location_id = di.location_id then 0 else 1 end as IsMoved, doc_id FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN UNIQUE_ITEM AS ui ON di.unique_item_id = ui.unique_item_id JOIN ITEM AS i ON ui.item_id = i.item_id WHERE doc_id = {0} AND di.unique_item_id IN ({1})", (object) DocId, (object) stringBuilder));
+        FormMain.CreateRowDelegate createRowDelegate = !this.m_complect_mode ? new FormMain.CreateRowDelegate(FormMain.CreateRowItem) : new FormMain.CreateRowDelegate(FormMain.CreateRowComplectItem);
+        using (DbDataReader reader = command.ExecuteReader())
+        {
+          while (reader.Read())
+          {
+            switch ((InventoryActions) reader.GetInt32(2))
+            {
+              case InventoryActions.NoAction:
+              case InventoryActions.SurplusNoAction:
+                if (this.footerFilterPanel.ShowNoAction)
+                  break;
+                continue;
+              case InventoryActions.AutoConfirm:
+              case InventoryActions.ManualConfirm:
+                if (this.footerFilterPanel.ShowInvented)
+                  break;
+                continue;
+              case InventoryActions.Missing:
+              case InventoryActions.MissingAuto:
+              case InventoryActions.SurplusMissing:
+              case InventoryActions.SurplusMissingAuto:
+                if (this.footerFilterPanel.ShowMissing)
+                  break;
+                continue;
+              case InventoryActions.SurplusAuto:
+              case InventoryActions.SurplusManually:
+                if (!this.footerFilterPanel.ShowSurplus)
+                  continue;
+                break;
+            }
+            Row row = createRowDelegate((IDataRecord) reader, IsGrey);
+            row.Tag = (object) num3++;
+            IsGrey = !IsGrey;
+            this.listInventory.DataRows.Add(row);
+          }
+          reader.Close();
+        }
+      }
+      this.listInventory.EnsureVisible(NewIdIndex - num1, true);
+      this.listInventory.ScrollPos -= ScrollOffset;
+      if (!SuspendRedraw)
+        return;
+      this.listInventory.EndUpdate();
+    }
+
+    private static Row CreateRowItem(IDataRecord reader, bool IsGrey)
+    {
+      UniqueItemType int32 = (UniqueItemType) reader.GetInt32(1);
+      return new Row(IsGrey ? FormMain.TemplateIndex.UIDefault.GetHashCode() : FormMain.TemplateIndex.UIDefaultGray.GetHashCode(), FormMain.TemplateIndex.UISelected.GetHashCode(), (ICollection) new object[14]
+      {
+        null,
+        (object) reader.GetInt32(0),
+        (object) 0,
+        (object) FormMain.GetStatusImageIndex((InventoryActions) reader.GetInt32(2), reader.GetInt32(7) == 1),
+        (object) reader.GetString(3),
+        reader.IsDBNull(4) ? (object) "пустой код" : (object) reader.GetString(4),
+        reader.IsDBNull(5) ? (object) "пустой код" : (object) reader.GetString(5),
+        reader.IsDBNull(6) ? (object) "пустой код" : (object) reader.GetString(6),
+        null,
+        null,
+        (object) reader.GetInt32(2),
+        (object) reader.GetInt32(8),
+        (object) (int32 == UniqueItemType.ComplectFixedAsset ? 8 : 6),
+        (object) string.Empty
+      });
+    }
+
+    private static Row CreateRowComplectItem(IDataRecord reader, bool IsGrey)
+    {
+      int num = reader.GetInt32(1) == 2 ? 1 : 0;
+      return new Row(IsGrey ? 1 : 2, 3, (ICollection) new object[14]
+      {
+        null,
+        (object) reader.GetInt32(0),
+        (object) num,
+        (object) FormMain.GetStatusImageIndex((InventoryActions) reader.GetInt32(2), reader.GetInt32(7) == 1),
+        (object) reader.GetString(3),
+        reader.IsDBNull(4) ? (object) "пустой код" : (object) reader.GetString(4),
+        reader.IsDBNull(5) ? (object) "пустой код" : (object) reader.GetString(5),
+        reader.IsDBNull(6) ? (object) "пустой код" : (object) reader.GetString(6),
+        null,
+        null,
+        (object) reader.GetInt32(2),
+        (object) reader.GetInt32(8),
+        (object) 8,
+        (object) string.Empty
+      });
+    }
+
+    private string[] GetExtraData(int DocId, int uid)
+    {
+      string[] extraData = new string[3];
+      using (DbCommand command = HexDBProc.DB.DbConnection.CreateCommand())
+      {
+        command.CommandText = string.Format("SELECT l.name as loc_name, bp.name as bp_name, di.inventory_date FROM DOC_DETAIL_UNIQUE_ITEM AS di JOIN BP on bp.bp_id = di.bp_id JOIN LOCATION as l on l.location_id = di.location_id WHERE di.doc_id = {0} AND di.unique_item_id = {1}", (object) DocId, (object) uid);
+        using (DbDataReader dbDataReader = command.ExecuteReader())
+        {
+          if (dbDataReader.Read())
+          {
+            extraData[0] = dbDataReader.IsDBNull(0) ? string.Empty : dbDataReader.GetString(0);
+            extraData[1] = dbDataReader.IsDBNull(1) ? string.Empty : dbDataReader.GetString(1);
+            extraData[2] = dbDataReader.IsDBNull(2) ? string.Empty : dbDataReader.GetString(2);
+          }
+          dbDataReader.Close();
+        }
+      }
+      return extraData;
+    }
+
+    private void SetItemExtraData(Row row)
+    {
+      if (row == null)
+        return;
+      string[] extraData = this.GetExtraData(Convert.ToInt32(row[11]), Convert.ToInt32(row[1]));
+      string empty;
+      if (string.IsNullOrEmpty(extraData[2]))
+      {
+        empty = this.m_doc.Created.ToString("dd.MM.yy hh:mm");
+      }
+      else
+      {
+        try
+        {
+          empty = Convert.ToDateTime(extraData[2]).ToString("dd.MM.yy hh:mm");
+        }
+        catch
+        {
+          empty = string.Empty;
+        }
+      }
+      row[9] = (object) extraData[0];
+      row[8] = (object) extraData[1];
+      row[13] = (object) empty;
+    }
+
+    private bool IsDocFullyInvented(int DocId)
+    {
+      bool flag = false;
+      using (DbCommand command = HexDBProc.DB.DbConnection.CreateCommand())
+      {
+        string str = 1.ToString() + "," + (object) 129;
+        command.CommandText = string.Format("SELECT COUNT(*) = 0 FROM DOC_DETAIL_UNIQUE_ITEM WHERE doc_id = {0} AND action_id in ({1})", (object) DocId, (object) str);
+        object obj = command.ExecuteScalar();
+        try
+        {
+          flag = Convert.ToBoolean(obj);
+        }
+        catch (Exception ex)
+        {
+          this.ToolTipShow(ex.Message);
+        }
+      }
+      return flag;
+    }
+
+    private void HideLocationList()
+    {
+      this.listLocations.Hide();
+      this.listInventory.Focus();
+    }
+
+    private void ThreadHideLocationListTimer(object o)
+    {
+      if (this.HideLocationListHandler == null)
+        return;
+      this.Invoke((Delegate) this.HideLocationListHandler);
+    }
+
+    private void ResetHideLocationListTimer() => this.timerHideLocationList.Change(200, -1);
+
+    private void UpdateListAfterAction()
+    {
+      HexWaitCursor.Show();
+      try
+      {
+        int id = -1;
+        if (this.listInventory.SelectedRow != null)
+          id = (int) this.listInventory.SelectedRow[1];
+        this.BeginUpdateMainList(false);
+        if (id < 0 || !this.FindAndSelectItem((long) id))
+          this.LoadTopListItems();
+        this.HideScrollBar();
+      }
+      catch (Exception ex)
+      {
+        HexWaitCursor.Hide();
+        throw;
+      }
+      HexWaitCursor.Hide();
+      this.listInventory.Focus();
+    }
+
+    private void UpdateListAfterFilter()
+    {
+      HexWaitCursor.Show();
+      try
+      {
+        if (this.listInventory.SelectedRow == null)
+        {
+          this.BeginUpdateMainList(false);
+          this.LoadTopListItems();
+        }
+        else
+        {
+          int int32 = Convert.ToInt32(this.listInventory.SelectedRow[0]);
+          this.BeginUpdateMainList(false);
+          if (!this.FindAndSelectItem((long) int32))
+            this.LoadTopListItems();
+          this.HideScrollBar();
+        }
+      }
+      catch
+      {
+        HexWaitCursor.Hide();
+        throw;
+      }
+      HexWaitCursor.Hide();
+      this.listInventory.Focus();
+    }
+
+    private void UpdateItemActionInIDsList(int id, InventoryActions action)
+    {
+      if (this.ItemsList == null)
+        return;
+      for (int index = 0; index < this.ItemsList.Count; ++index)
+      {
+        if (this.ItemsList[index].ID == id)
+        {
+          this.ItemsList[index].ActionID = (byte) action;
+          break;
+        }
+      }
+    }
+
+    private void UpdateComplectItemActionInIDsList(int unique_item_id, InventoryActions action)
+    {
+      if (this.ComplectItemsList == null)
+        this.ComplectItemsList = this.LoadAllComplectItemsIDs((long) this.m_doc.ChildDocId);
+      for (int index = 0; index < this.ComplectItemsList.Count; ++index)
+      {
+        if (this.ComplectItemsList[index].ID == unique_item_id)
+        {
+          this.ComplectItemsList[index].ActionID = (byte) action;
+          break;
+        }
+      }
+    }
+
+    private void UpdateAllComplectItemsActionInIDsList(int ComplectId, InventoryActions action)
+    {
+      if (this.ComplectItemsList == null)
+        return;
+      for (int index = 0; index < this.ComplectItemsList.Count; ++index)
+      {
+        if (this.ComplectItemsList[index].ParentID == ComplectId)
+          this.ComplectItemsList[index].ActionID = (byte) action;
+      }
+    }
+
+    private bool IsComplectInvented(int ComplectId)
+    {
+      bool flag = true;
+      if (this.ComplectItemsList == null)
+        this.ComplectItemsList = this.LoadAllComplectItemsIDs((long) this.m_doc.ChildDocId);
+      for (int index = 0; index < this.ComplectItemsList.Count; ++index)
+      {
+        if (this.ComplectItemsList[index].ParentID == ComplectId && ((int) this.ComplectItemsList[index].ActionID & 1) == 1)
+        {
+          flag = false;
+          break;
+        }
+      }
+      return flag;
+    }
+
+    private bool IsComplectCanBeDeleted(int ComplectId)
+    {
+      bool flag = true;
+      if (this.ComplectItemsList == null)
+        this.ComplectItemsList = this.LoadAllComplectItemsIDs((long) this.m_doc.ChildDocId);
+      for (int index = 0; index < this.ComplectItemsList.Count; ++index)
+      {
+        if (this.ComplectItemsList[index].ParentID == ComplectId && this.ComplectItemsList[index].ActionID != (byte) 129)
+        {
+          flag = false;
+          break;
+        }
+      }
+      return flag;
+    }
+
+    private void RemoveItemFromIDsList(int id)
+    {
+      int index1 = -1;
+      for (int index2 = 0; index2 < this.ItemsList.Count; ++index2)
+      {
+        if (this.ItemsList[index2].ID == id)
+        {
+          index1 = index2;
+          break;
+        }
+      }
+      if (index1 < 0)
+        return;
+      this.ItemsList.RemoveAt(index1);
+    }
+
+    private void RemoveComplectItemsFromIDsList(int ComplectId)
+    {
+      if (this.ComplectItemsList == null)
+        return;
+      bool flag = true;
+      int num = 0;
+      while (flag && this.ComplectItemsList.Count > 0)
+      {
+        int index1 = -1;
+        for (int index2 = num; index2 < this.ComplectItemsList.Count; ++index2)
+        {
+          if (this.ComplectItemsList[index2].ParentID == ComplectId)
+          {
+            index1 = index2;
+            num = index2;
+            if (index2 == this.ComplectItemsList.Count - 1)
+            {
+              flag = false;
+              break;
+            }
+            break;
+          }
+          if (index2 == this.ComplectItemsList.Count - 1)
+            flag = false;
+        }
+        if (index1 != -1)
+          this.ComplectItemsList.RemoveAt(index1);
+      }
+    }
+
+    private void RemoveComplectItemFromIDsList(int id)
+    {
+      int index1 = -1;
+      for (int index2 = 0; index2 < this.ComplectItemsList.Count; ++index2)
+      {
+        if (this.ComplectItemsList[index2].ID == id)
+        {
+          index1 = index2;
+          break;
+        }
+      }
+      if (index1 < 0)
+        return;
+      this.ComplectItemsList.RemoveAt(index1);
+    }
+
+    private void AddItemToIDsList(int id, InventoryActions action)
+    {
+      if (this.ItemsList == null)
+        return;
+      bool flag = false;
+      for (int index = 0; index < this.ItemsList.Count; ++index)
+      {
+        if (id < this.ItemsList[index].ID)
+        {
+          this.ItemsList.Insert(index, new FormMain.ItemStruct(id, (byte) action));
+          flag = true;
+          break;
+        }
+      }
+      if (flag)
+        return;
+      this.ItemsList.Add(new FormMain.ItemStruct(id, (byte) action));
+    }
+
+    private void AddComplectItemToIDsList(int id, int parent_id, InventoryActions action)
+    {
+      if (this.ComplectItemsList == null)
+        return;
+      bool flag = false;
+      for (int index = 0; index < this.ComplectItemsList.Count; ++index)
+      {
+        if (id < this.ComplectItemsList[index].ID)
+        {
+          this.ComplectItemsList.Insert(index + 1, new FormMain.ComplectItemStruct(id, parent_id, (byte) action));
+          flag = true;
+          break;
+        }
+      }
+      if (flag)
+        return;
+      this.ComplectItemsList.Add(new FormMain.ComplectItemStruct(id, parent_id, (byte) action));
+    }
+
+    private void CreateSurplusFixedAssets(HexUniqueItem ui, FormMain.ScanType scanType)
+    {
+      if (scanType != FormMain.ScanType.RFID)
+      {
+        string text = string.Format("Найденный объект учета '{0}' принадлежит {1} '{2}'. Желаете добавить объект в текущую ведомость?", (object) ui.Name, this.m_doc.InventMode == HexDocInventory.InventoryMode.ModeBP ? (object) "МОЛу" : (object) "подразделению", this.m_doc.InventMode == HexDocInventory.InventoryMode.ModeBP ? (object) HexBPLoc.GetBpName(ui.BP_ID) : (object) HexBPLoc.GetLocationName(ui.LocID));
+        if (!this.m_useDefault_Surplus)
+          this.m_defaultChoose_Surplus = HexMessageBox.Show((Form) this, text, "Уведомление", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, "Запомнить выбор", ref this.m_useDefault_Surplus);
+        if (this.m_defaultChoose_Surplus == DialogResult.No)
+          throw new Exception("Действие отменено.");
+      }
+      if (!(this.m_doc.DetailCreate((HexItem) ui) is HexDocDetailUniqItem det))
+        throw new NullReferenceException(string.Format("Не удалось добавить в документ ОС '{0}'", (object) ui.Name));
+      this.CheckDates(ui.LastInvDate);
+      this.m_doc.DetailMove(det);
+      this.m_doc.DetailSetAction(InventoryActions.SurplusAuto, det);
+      this.m_doc.AllDocsRemoveSurplusItem(ui.UniqueItemID, this.m_doc.ChildDocId);
+      this.m_doc.AllDocsMissItem(ui.UniqueItemID, this.m_doc.ChildDocId);
+      this.AddItemToIDsList(ui.UniqueItemID, InventoryActions.SurplusAuto);
+      if (scanType == FormMain.ScanType.RFID)
+        return;
+      this.BeginUpdateMainList(false);
+      if (this.FindAndSelectItem((long) ui.UniqueItemID))
+        return;
+      this.LoadTopListItems();
+    }
+
+    private void DoInventoryList(List<string> Barcodes)
+    {
+      try
+      {
+        HexWaitCursor.Show();
+        int num1 = 0;
+        int num2 = 0;
+        bool useDefaultSurplus = this.m_useDefault_Surplus;
+        DialogResult defaultChooseSurplus = this.m_defaultChoose_Surplus;
+        this.m_useDefault_Surplus = true;
+        this.m_defaultChoose_Surplus = DialogResult.Yes;
+        foreach (string barcode in Barcodes)
+        {
+          switch (this.DoInventory(barcode, FormMain.ScanType.Laser, out string _))
+          {
+            case FormMain.InvActionResult.SuccessItemInvented:
+            case FormMain.InvActionResult.SuccessComplectInvented:
+              ++num1;
+              continue;
+            default:
+              ++num2;
+              continue;
+          }
+        }
+        this.m_useDefault_Surplus = useDefaultSurplus;
+        this.m_defaultChoose_Surplus = defaultChooseSurplus;
+        this.UpdateListAfterAction();
+        this.ToolTipShow(string.Format("Добавлено элементов: {0}\nНе удалось добавить: {1}", (object) num1, (object) num2));
+        HexWaitCursor.Hide();
+      }
+      catch (Exception ex)
+      {
+        HexWaitCursor.Hide();
+        this.ToolTipShow(ex.Message);
+      }
+    }
+
+    private FormMain.InvActionResult DoInventory(
+      string Barcode,
+      FormMain.ScanType scanType,
+      out string Message)
+    {
+      FormMain.InvActionResult invActionResult = FormMain.InvActionResult.SuccessItemInvented;
+      Message = string.Empty;
+      this.ToolTipHide();
+      if (this.m_doc.Status == HexDoc.DocState.Closed)
+      {
+        Message = "Документ завершен. Редактирование невозможно.";
+        return FormMain.InvActionResult.Error;
+      }
+      Benchmark.Instance.ResetElapsedTime();
+      HexDocDetailUniqItem docDetailUniqItem = (HexDocDetailUniqItem) this.m_doc.DetailGet(Barcode);
+      Benchmark.Instance.WriteReportString("Time to find doc detail");
+      if (docDetailUniqItem == null)
+      {
+        Benchmark.Instance.ResetElapsedTime();
+        HexUniqueItem uniqueItemByBarcode = HexUniqueItem.GetUniqueItemByBarcode(Barcode);
+        Benchmark.Instance.WriteReportString("Time to get HexUniqueItem");
+        if (uniqueItemByBarcode == null)
+        {
+          Message = string.Format("ОС {0} не найдено в каталоге", (object) Barcode);
+          return FormMain.InvActionResult.Error;
+        }
+        if (uniqueItemByBarcode.TypeUI == UniqueItemType.Complect)
+        {
+          Message = "Инвентаризировать комплект можно, только инвентаризировав его элементы";
+          return FormMain.InvActionResult.Error;
+        }
+        if (scanType == FormMain.ScanType.RFID)
+          return FormMain.InvActionResult.ActionNotApplied;
+        try
+        {
+          this.CreateSurplusFixedAssets(uniqueItemByBarcode, scanType);
+          this.m_doc.ModifyDoc();
+          this.FillListLocations();
+        }
+        catch (Exception ex)
+        {
+          Message = ex.Message;
+          invActionResult = FormMain.InvActionResult.Error;
+        }
+        return invActionResult;
+      }
+      if (scanType != FormMain.ScanType.Manually)
+      {
+        if (this.IsItemInIDsList(docDetailUniqItem.UniqueItemID))
+          this.FindAndSelectItem((long) docDetailUniqItem.UniqueItemID);
+        else if (docDetailUniqItem.TypeUI == UniqueItemType.ComplectFixedAsset && this.IsItemInIDsList(docDetailUniqItem.ParentID))
+          this.FindAndSelectItem((long) docDetailUniqItem.ParentID);
+      }
+      if (docDetailUniqItem.TypeUI == UniqueItemType.Complect)
+      {
+        Message = "Инвентаризировать комплект можно, только инвентаризировав его элементы";
+        return FormMain.InvActionResult.Error;
+      }
+      if (docDetailUniqItem.Action == InventoryActions.AutoConfirm || docDetailUniqItem.Action == InventoryActions.SurplusAuto)
+      {
+        Message = string.Format("ОС '{0}' со штрих-кодом {1} уже проинвентаризировано!", (object) docDetailUniqItem.ItemName, (object) Barcode);
+        return FormMain.InvActionResult.Error;
+      }
+      InventoryActions inventoryActions = scanType != FormMain.ScanType.Manually ? (Bits.IsBitSet((Enum) docDetailUniqItem.Action, (Enum) InventoryBits.Surplus) ? InventoryActions.SurplusAuto : InventoryActions.AutoConfirm) : (Bits.IsBitSet((Enum) docDetailUniqItem.Action, (Enum) InventoryBits.Surplus) ? InventoryActions.SurplusManually : InventoryActions.ManualConfirm);
+      this.m_doc.EasyInvent(docDetailUniqItem.UniqueItemID, (int) inventoryActions);
+      this.UpdateItemActionInIDsList(docDetailUniqItem.UniqueItemID, inventoryActions);
+      Message = string.Format("ОС \"{0}\" со штрих-кодом {1} проинвентаризированно", (object) docDetailUniqItem.ItemName, (object) Barcode);
+      this.m_doc.ModifyDoc();
+      this.UpdateListAfterAction();
+      this.m_doc.DecreaseCurrentNoAction();
+      this.UpdateLocationListAfterAction();
+      return invActionResult;
+    }
+
+    private void UpdateLocationListAfterAction() => this.OnDocCompleteStateChanged(!this.m_doc.ContainsNoAction());
+
+    private void CheckDates(DateTime dtCreated)
+    {
+      if (dtCreated.Date > this.m_doc.DateStarted)
+        throw new Exception("Дата начала инвентаризации меньше, чем дата ввода объекта учета в эксплуатацию");
+    }
+
+    private FormMain.InvActionResult DoCancelAction(
+      HexDocDetailUniqItem det,
+      out string Message)
+    {
+      if (det.TypeUI == UniqueItemType.Complect)
+      {
+        Message = "Отменить комплект можно лишь совершив отмену всех его элементов";
+        return FormMain.InvActionResult.Error;
+      }
+      Message = "";
+      if (HexMessageBox.Show((Form) this, "Отменить действие?", "Подтверждение", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+        return FormMain.InvActionResult.ActionCanceled;
+      InventoryActions action = Bits.IsBitSet((Enum) det.Action, (Enum) InventoryBits.Surplus) ? InventoryActions.SurplusNoAction : InventoryActions.NoAction;
+      FormMain.InvActionResult invActionResult;
+      if (Bits.IsBitSet((Enum) det.Action, (Enum) InventoryBits.Surplus))
+      {
+        this.RemoveItemFromIDsList(det.UniqueItemID);
+        this.m_doc.AllDocsRemoveSurplusItem(det.UniqueItemID, -1);
+        Message = string.Format("Объект учета - излишек {0} удален", (object) det.Barcode);
+        invActionResult = FormMain.InvActionResult.SuccessItemDeleted;
+      }
+      else
+      {
+        this.m_doc.AllDocsRollbackAction(det.UniqueItemID);
+        this.m_doc.AllDocsRemoveSurplusItem(det.UniqueItemID, -1);
+        this.UpdateItemActionInIDsList(det.UniqueItemID, action);
+        Message = string.Format("Действие для ОС {0} отменено", (object) det.Barcode);
+        invActionResult = FormMain.InvActionResult.SuccessItemCanceled;
+      }
+      this.m_doc.ModifyDoc();
+      this.m_doc.IncreaseCurrentNoAction();
+      this.UpdateLocationListAfterAction();
+      return invActionResult;
+    }
+
+    private FormMain.InvActionResult DoMiss(string Barcode, out string Message)
+    {
+      HexDocDetailUniqItem docDetailUniqItem = (HexDocDetailUniqItem) this.m_doc.DetailGet(Barcode);
+      if (docDetailUniqItem == null)
+      {
+        Message = string.Format("Деталь {0} не найдена в документе", (object) Barcode);
+        return FormMain.InvActionResult.Error;
+      }
+      InventoryActions inventoryActions = Bits.IsBitSet((Enum) docDetailUniqItem.Action, (Enum) InventoryBits.Surplus) ? InventoryActions.SurplusMissing : InventoryActions.Missing;
+      this.m_doc.EasySetDetailAction(docDetailUniqItem, inventoryActions);
+      this.m_doc.EasySaveDetail((HexDocDetail) docDetailUniqItem);
+      this.UpdateItemActionInIDsList(docDetailUniqItem.UniqueItemID, inventoryActions);
+      Message = string.Format("Элемент {0} помечен как отсутствующий", (object) Barcode);
+      this.m_doc.ModifyDoc();
+      this.m_doc.DecreaseCurrentNoAction();
+      this.UpdateListAfterAction();
+      this.UpdateLocationListAfterAction();
+      return FormMain.InvActionResult.SuccessItemInvented;
+    }
+
+    private enum DetailImageIndex
+    {
+      NoAction,
+      Auto,
+      Manual,
+      Missing,
+      SurplusNoAction,
+      SurplusAuto,
+      TagFixedAsset,
+      TagComplect,
+      TagComplectFixedAsset,
+      TagInventoryHoldings,
+    }
+
+    private enum TemplateIndex
+    {
+      Header,
+      UIDefault,
+      UIDefaultGray,
+      UISelected,
+      ComplectElementSelected,
+      HeaderExtended,
+      UIDSelectedEx,
+    }
+
+    private enum TemplateLocations
+    {
+      Default,
+      Grey,
+      Selected,
+    }
+
+    private enum AdvListObjIndx
+    {
+      UniqueItemID,
+      Barcode,
+      ItemName,
+      StatusImage,
+      IsComplect,
+      InventoryDate,
+    }
+
+    private enum TemplateFields
+    {
+      Extra,
+      UItemID,
+      Type,
+      ImgIndex,
+      Name,
+      Barcode,
+      InvNumber,
+      SerialNumber,
+      BP,
+      Loc,
+      ActionID,
+      ChildDocId,
+      TagImage,
+      InvDate,
+    }
+
+    private struct IdName
+    {
+      public long ID;
+      public string Name;
+    }
+
+    private delegate int SetScrollDeleg(int ci, int cx, int offset);
+
+    private enum HardFKeys
+    {
+      F1 = 112, // 0x00000070
+      F2 = 113, // 0x00000071
+      F3 = 114, // 0x00000072
+      F4 = 115, // 0x00000073
+    }
+
+    private delegate void HideScrollBarDelegate();
+
+    private class ItemStruct
+    {
+      public int ID;
+      public byte ActionID;
+
+      public ItemStruct(int id, byte actionId)
+      {
+        this.ID = id;
+        this.ActionID = actionId;
+      }
+    }
+
+    private class ComplectItemStruct
+    {
+      public int ID;
+      public int ParentID;
+      public byte ActionID;
+
+      public ComplectItemStruct(int id, int parentId, byte actionId)
+      {
+        this.ID = id;
+        this.ParentID = parentId;
+        this.ActionID = actionId;
+      }
+    }
+
+    private delegate Row CreateRowDelegate(IDataRecord reader, bool IsGrey);
+
+    private delegate void HideLocationListDelegate();
+
+    private enum InvActionResult
+    {
+      SuccessItemInvented = 0,
+      SuccessComplectInvented = 1,
+      SuccessItemCanceled = 2,
+      SuccessComplectDeleted = 3,
+      SuccessItemDeleted = 4,
+      ActionCanceled = 100, // 0x00000064
+      ActionNotApplied = 200, // 0x000000C8
+      Error = 1001, // 0x000003E9
+    }
+
+    private enum ScanType
+    {
+      Manually,
+      Laser,
+      RFID,
+    }
+  }
+}
